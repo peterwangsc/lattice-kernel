@@ -10,6 +10,7 @@ import { createRouter } from "./router.js";
 import { registerHealthRoutes } from "./routes/health.js";
 import { registerPolicyRoutes } from "./routes/policies.js";
 import { registerAuditRoutes } from "./routes/audit.js";
+import { cors } from "./middleware/cors.js";
 import { createPolicyEngine } from "@lattice-kernel/policy-engine";
 import { createSqliteAuditSink } from "@lattice-kernel/storage";
 
@@ -26,9 +27,13 @@ registerHealthRoutes(router);
 registerPolicyRoutes(router, policyEngine);
 registerAuditRoutes(router, auditSink);
 
+// Middleware
+const applyCors = cors();
+
 // Start server
 const server = createServer(async (req, res) => {
   try {
+    if (applyCors(req, res)) return; // Preflight handled
     await router.handle(req, res);
   } catch (err) {
     res.writeHead(500, { "Content-Type": "application/json" });

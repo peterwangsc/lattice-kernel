@@ -1,5 +1,6 @@
 import { describe, it, expect } from "vitest";
 import { createRouter, json } from "../router.js";
+import { cors } from "../middleware/cors.js";
 import { registerHealthRoutes } from "../routes/health.js";
 import { registerPolicyRoutes } from "../routes/policies.js";
 import { registerAuditRoutes } from "../routes/audit.js";
@@ -44,6 +45,9 @@ function mockRes(): ServerResponse & { statusCode: number; body: string; headers
     },
     end(data?: string) {
       if (data) res.body = data;
+    },
+    setHeader(name: string, value: string) {
+      res.headers[name] = value;
     },
   } as unknown as ServerResponse & { statusCode: number; body: string; headers: Record<string, string> };
   return res;
@@ -216,6 +220,40 @@ describe("Control Plane Routes", () => {
       await router.handle(req, res);
 
       expect(capturedId).toBe("abc-123");
+    });
+  });
+
+  describe("cors", () => {
+    it("sets CORS headers on regular requests", () => {
+      const applyCors = cors();
+      const req = mockReq("GET", "/health");
+      const res = mockRes();
+      const handled = applyCors(req, res);
+
+      expect(handled).toBe(false);
+      expect(res.headers["Access-Control-Allow-Origin"]).toBe("*");
+      expect(res.headers["Access-Control-Allow-Methods"]).toContain("GET");
+    });
+
+    it("handles OPTIONS preflight with 204", () => {
+      const applyCors = cors();
+      const req = mockReq("OPTIONS", "/api/v1/policies");
+      const res = mockRes();
+      const handled = applyCors(req, res);
+
+      expect(handled).toBe(true);
+      expect(res.statusCode).toBe(204);
+    });
+
+    it("supports custom origin", () => {
+      const applyCors = cors({ allowOrigin: "https://dashboard.example.com" });
+      const req = mockReq("GET", "/health");
+      const res = mockRes();
+      applyCors(req, res);
+
+      expect(res.headers["Access-Control-Allow-Origin"]).toBe(
+        "https://dashboard.example.com",
+      );
     });
   });
 });
