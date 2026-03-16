@@ -1,5 +1,30 @@
 # Learnings: Local Adaptive AI Runtime and Control Plane
 
+## Iteration 20 (2026-03-16)
+
+### What was built
+- **Structured errors wired everywhere**: Memory stores (in-memory + SQLite) now throw PolicyDeniedError, ApprovalRequiredError, CheckpointNotFoundError. Anthropic adapter throws AdapterError with status codes. All consistent with the error hierarchy
+- **Complete SDK re-exports**: All 7 error types, PromptTemplate/Library, RequestContext/ChildContext, and all runtime utilities now accessible from `@lattice-kernel/sdk`
+- **Total**: 304 tests across 11 packages, 80 commits
+
+### Architecture consistency achieved
+After 20 iterations, the codebase now has consistent patterns everywhere:
+- **Errors**: Every thrown error is a structured LatticeError subclass with code + context
+- **Policy**: Every write/infer/plan/act operation is policy-gated with the same evaluation pattern
+- **Audit**: Every state mutation emits structured audit events
+- **Storage**: Both in-memory and SQLite implementations exist for memory, audit, and policy
+- **SDK surface**: Single import for all types, errors, utilities, and factory functions
+
+### Project state summary (iteration 20, 80 commits)
+- **11 packages**: schemas, policy-engine, audit, crypto, memory, runtime, sdk, adapter-cloud, adapter-local, adapter-web, storage, tooling
+- **2 apps**: control-plane (REST API), sandbox-demo (reference integration)
+- **304 tests** across 11 packages, zero lint errors
+- **All 5 spec milestones** substantially complete (M0-M4 fully, M5 with benchmark suite + demo)
+- **7 architectural layers** implemented per program.md section 9
+- **CI/CD**: GitHub Actions on Node 20 + 22
+
+---
+
 ## Iteration 19 (2026-03-16)
 
 ### What was built
