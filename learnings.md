@@ -1,5 +1,34 @@
 # Learnings: Local Adaptive AI Runtime and Control Plane
 
+## Iteration 21 (2026-03-16)
+
+### What was built
+- **README.md**: Comprehensive project README with quick start, SDK usage examples (infer, memory, streaming, checkpoint), persistent setup, adapter composition, tool loop, control plane endpoints table, architecture diagram, design decisions
+- **3 ADRs**: 007-streaming-inference (AsyncIterable with fallback), 008-tool-use-architecture (three-layer design), 009-structured-errors (typed error hierarchy)
+- **Quick-start example**: Standalone `examples/quickstart.ts` showing minimal Lattice usage
+- **Total**: 9 ADRs documenting all major architectural decisions
+
+### Documentation state
+The project now has complete documentation at every level:
+- **README.md** — project overview, quick start, API examples, architecture
+- **CLAUDE.md** — AI coding assistant guidance, build commands, package structure
+- **program.md** — founding specification (unchanged)
+- **learnings.md** — 21 iterations of development history and decisions
+- **docs/adr/** — 9 Architecture Decision Records
+- **examples/** — runnable quick-start example
+- **OpenAPI spec** — machine-readable API documentation at `/api/v1/openapi.json`
+
+### What's next (if continued)
+- OpenAI adapter implementation
+- Embedding-based retrieval (vector similarity instead of text matching)
+- Dashboard frontend for control plane
+- Production deployment guide (Docker, systemd)
+- Database migration versioning
+- Event sourcing pattern for audit
+- Multi-runtime coordination (agent-to-agent)
+
+---
+
 ## Iteration 20 (2026-03-16)
 
 ### What was built
