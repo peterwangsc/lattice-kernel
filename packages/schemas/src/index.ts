@@ -9,3 +9,4 @@ export * from "./action.js";
 export * from "./checkpoint.js";
 export * from "./common.js";
 export * from "./adapter.js";
+export * from "./errors.js";

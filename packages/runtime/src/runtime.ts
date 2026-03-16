@@ -11,6 +11,12 @@ import type {
   ActResult,
 } from "./types.js";
 import type { BackendAdapter, Plan, InferStreamChunk } from "@lattice-kernel/schemas";
+import {
+  PolicyDeniedError,
+  NoAdaptersError,
+  ToolNotFoundError,
+  ApprovalRequiredError,
+} from "@lattice-kernel/schemas";
 import { createModelRegistry } from "./model-registry.js";
 import type { ModelRegistry } from "./model-registry.js";
 
@@ -39,7 +45,7 @@ export function createRuntime(config: RuntimeConfig): Runtime {
     modelId?: string,
   ): Promise<BackendAdapter> {
     if (adapters.length === 0) {
-      throw new Error("No adapters configured");
+      throw new NoAdaptersError();
     }
 
     // If a specific model is requested, use the registry to find its adapter
@@ -135,8 +141,10 @@ export function createRuntime(config: RuntimeConfig): Runtime {
           error: policyDecision.reason ?? "Policy denied",
           durationMs: Date.now() - startMs,
         });
-        throw new Error(
-          `Policy denied infer: ${policyDecision.reason ?? "no reason given"}`,
+        throw new PolicyDeniedError(
+          "infer",
+          policyDecision.reason,
+          policyDecision.matchedRules,
         );
       }
 
@@ -212,8 +220,10 @@ export function createRuntime(config: RuntimeConfig): Runtime {
           policyDecisions: policyDecision.matchedRules,
           error: policyDecision.reason ?? "Policy denied",
         });
-        throw new Error(
-          `Policy denied infer: ${policyDecision.reason ?? "no reason given"}`,
+        throw new PolicyDeniedError(
+          "infer",
+          policyDecision.reason,
+          policyDecision.matchedRules,
         );
       }
 
@@ -296,9 +306,7 @@ export function createRuntime(config: RuntimeConfig): Runtime {
       });
 
       if (!policyDecision.allowed) {
-        throw new Error(
-          `Policy denied embed: ${policyDecision.reason ?? "no reason given"}`,
-        );
+        throw new PolicyDeniedError("embed", policyDecision.reason, policyDecision.matchedRules);
       }
 
       const adapter = await selectAdapter("auto");
@@ -356,9 +364,7 @@ export function createRuntime(config: RuntimeConfig): Runtime {
           policyDecisions: policyDecision.matchedRules,
           error: policyDecision.reason ?? "Policy denied plan",
         });
-        throw new Error(
-          `Policy denied plan: ${policyDecision.reason ?? "no reason given"}`,
-        );
+        throw new PolicyDeniedError("plan", policyDecision.reason, policyDecision.matchedRules);
       }
 
       // Build the plan from provided steps or create a single-step plan
@@ -418,9 +424,7 @@ export function createRuntime(config: RuntimeConfig): Runtime {
           policyDecisions: policyDecision.matchedRules,
           error: policyDecision.reason ?? "Policy denied action",
         });
-        throw new Error(
-          `Policy denied action on tool "${options.tool}": ${policyDecision.reason ?? "no reason given"}`,
-        );
+        throw new PolicyDeniedError("act", policyDecision.reason, policyDecision.matchedRules, { tool: options.tool });
       }
 
       if (policyDecision.requiresApproval) {
@@ -433,17 +437,15 @@ export function createRuntime(config: RuntimeConfig): Runtime {
           timestamp: new Date().toISOString(),
           actor: "runtime",
           policyDecisions: policyDecision.matchedRules,
-          error: "Action requires approval — not yet implemented",
+          error: "Action requires approval",
         });
-        throw new Error(
-          `Action on tool "${options.tool}" requires approval`,
-        );
+        throw new ApprovalRequiredError(`Action on tool "${options.tool}"`, policyDecision.matchedRules);
       }
 
       // Find the tool adapter
       const toolAdapter = toolMap.get(options.tool);
       if (!toolAdapter) {
-        throw new Error(`Tool not found: ${options.tool}`);
+        throw new ToolNotFoundError(options.tool);
       }
 
       // Execute the tool

@@ -557,7 +557,7 @@ describe("Runtime", () => {
           input: {},
           trustLevel: "trusted_user_explicit",
         }),
-      ).rejects.toThrow("Policy denied action");
+      ).rejects.toThrow("Policy denied act");
     });
 
     it("includes plan reference in action when provided", async () => {
