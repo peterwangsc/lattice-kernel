@@ -19,7 +19,9 @@
     "test": "echo 'no tests configured yet'"
   },
   "dependencies": {
-    "@lattice-kernel/schemas": "workspace:*"
+    "@lattice-kernel/schemas": "workspace:*",
+    "@lattice-kernel/policy-engine": "workspace:*",
+    "@lattice-kernel/audit": "workspace:*"
   },
   "devDependencies": {
     "typescript": "^5.7.0"
