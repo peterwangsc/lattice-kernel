@@ -21,7 +21,8 @@ export type {
   Plan,
   PlanStep,
   Action,
+  InferStreamChunk,
 } from "@lattice-kernel/schemas";
 
-// Re-export ToolAdapter from runtime
-export type { ToolAdapter, ActResult } from "@lattice-kernel/runtime";
+// Re-export from runtime
+export type { ToolAdapter, ActResult, InferStreamResult } from "@lattice-kernel/runtime";

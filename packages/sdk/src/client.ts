@@ -15,6 +15,7 @@ import type {
   EmbedResult,
   ToolAdapter,
   ActResult,
+  InferStreamResult,
 } from "@lattice-kernel/runtime";
 import { createPolicyEngine } from "@lattice-kernel/policy-engine";
 import type { PolicyEngine } from "@lattice-kernel/policy-engine";
@@ -115,6 +116,18 @@ export class Lattice {
 
   async infer(input: string, options: InferOptions = {}): Promise<InferResult> {
     return this.runtime.infer({
+      input,
+      model: options.model,
+      executionPreference: options.executionPreference,
+      memoryScope: options.scope ?? this.defaultScope,
+      trustLevel: options.trustLevel ?? this.defaultTrustLevel,
+      maxTokens: options.maxTokens,
+      temperature: options.temperature,
+    });
+  }
+
+  async inferStream(input: string, options: InferOptions = {}): Promise<InferStreamResult> {
+    return this.runtime.inferStream({
       input,
       model: options.model,
       executionPreference: options.executionPreference,
