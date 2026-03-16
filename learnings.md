@@ -1,5 +1,27 @@
 # Learnings: Local Adaptive AI Runtime and Control Plane
 
+## Iteration 25 (2026-03-16)
+
+### What was built
+- **Persistent embeddings in SQLite**: `embedding` TEXT column, auto-generated at write time via optional `embed` config. Retrieval uses cosine similarity when embeddings available, falls back to text scoring. Survives restarts
+- **Rate limiting middleware**: Sliding window by client IP with `Retry-After` header. Configurable via `RATE_LIMIT` env var. X-Forwarded-For aware. 3 tests
+- **Total**: 338 tests across 11 packages, 98 commits
+
+### Control plane middleware stack (execution order)
+1. **CORS** — sets headers, handles OPTIONS preflight
+2. **Rate limit** — per-IP sliding window (optional, env-controlled)
+3. **Auth** — API key verification (optional, env-controlled)
+4. **Router** — route matching and handler execution
+
+Each middleware returns boolean — `true` means "handled, stop". Clean composition without framework abstractions.
+
+### Architecture decisions made
+- **Embeddings in SQLite as JSON TEXT**: Not a separate vector table. JSON-encoded float arrays in a TEXT column. Simple, query-less (parsed in application code). A production system at scale would use pgvector or a dedicated vector DB
+- **Rate limit disabled by default (RATE_LIMIT=0)**: Development doesn't need rate limiting. Production sets it via env var. Same pattern as API_KEYS
+- **Embeddings lost on rollback**: When rolling back to a checkpoint, restored items get `embedding: null`. This is acceptable — re-embed on next write if needed. Avoiding the complexity of embedding snapshots
+
+---
+
 ## Iteration 24 (2026-03-16)
 
 ### What was built
