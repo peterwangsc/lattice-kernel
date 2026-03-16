@@ -1,5 +1,6 @@
 import type { MemoryItem, ScopeRef, TrustLevel, Checkpoint } from "@lattice-kernel/schemas";
 import { PolicyDeniedError, ApprovalRequiredError, CheckpointNotFoundError } from "@lattice-kernel/schemas";
+import { textOverlapScore } from "./vector-scorer.js";
 import type { MemoryStore, MemoryStoreConfig, MemoryWriteInput, RetrieveOptions, VerifyResult } from "./types.js";
 
 const TRUST_ORDER: TrustLevel[] = [
@@ -190,15 +191,10 @@ export function createMemoryStore(config: MemoryStoreConfig): MemoryStore {
         (item) => !item.expiresAt || item.expiresAt > now,
       );
 
-      // Simple text relevance: items containing query terms rank higher
-      const queryTerms = query.toLowerCase().split(/\s+/);
+      // Rank by relevance using vector scorer (text overlap by default)
       results.sort((a, b) => {
-        const scoreA = queryTerms.filter((t) =>
-          a.content.toLowerCase().includes(t),
-        ).length;
-        const scoreB = queryTerms.filter((t) =>
-          b.content.toLowerCase().includes(t),
-        ).length;
+        const scoreA = textOverlapScore(query, a.content);
+        const scoreB = textOverlapScore(query, b.content);
         if (scoreB !== scoreA) return scoreB - scoreA;
         // Tie-break: higher trust first, then newer first
         const trustDiff = trustRank(b.trustLevel) - trustRank(a.trustLevel);
