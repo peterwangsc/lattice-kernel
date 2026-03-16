@@ -1,5 +1,34 @@
 # Learnings: Local Adaptive AI Runtime and Control Plane
 
+## Iteration 19 (2026-03-16)
+
+### What was built
+- **Webhook audit sink**: `createWebhookAuditSink` delivers events via HTTP POST. Supports batching, event type filtering, custom headers, flush, onError callback. 7 tests
+- **Structured error types**: Error hierarchy (LatticeError → PolicyDeniedError, ApprovalRequiredError, AdapterError, ToolNotFoundError, CheckpointNotFoundError, NoAdaptersError) with code, message, context. Wired into runtime. 8 tests
+- **Total test count**: 304 unique tests across 11 packages (schemas now has tests)
+
+### Architecture decisions made
+- **Error codes are string constants**: `POLICY_DENIED`, `TOOL_NOT_FOUND`, etc. Consumers can switch on `err.code` for programmatic handling without checking message strings
+- **Errors carry context**: `PolicyDeniedError` includes `matchedRules`, `AdapterError` includes `providerId` and `statusCode`. This enables rich error handling without parsing messages
+- **All errors extend LatticeError which extends Error**: Standard JS error chain — works with `instanceof`, `try/catch`, and error monitoring tools
+- **Webhook batching is configurable**: `batchSize: 1` for real-time (default), higher values for throughput. `flushIntervalMs` prevents unbounded buffering. `flush()` for graceful shutdown
+- **Webhook type filtering**: Only send events matching specified types (e.g., only "infer" errors). Reduces noise for downstream consumers
+
+### Technical notes
+- The runtime now throws structured errors everywhere instead of plain `Error(message)`. Existing tests still pass because `toThrow("Policy denied")` matches the message substring
+- Webhook sink uses the same write-only pattern as JSON sink — pair with CompositeAuditSink for query support
+- The `onError` callback on webhook sink prevents delivery failures from crashing the runtime — fire-and-forget with error logging
+
+### What's next (suggested)
+- Wire structured errors into memory store and SDK
+- Anthropic adapter: use AdapterError for API failures
+- Error aggregation in metrics endpoint
+- Production deployment guide
+- OpenAI adapter implementation
+- Event sourcing for audit (append-only log)
+
+---
+
 ## Iteration 18 (2026-03-16)
 
 ### What was built
