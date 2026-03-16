@@ -13,6 +13,16 @@ export interface MemoryStore {
   checkpoint(description?: string): Promise<Checkpoint>;
   rollback(checkpointId: string): Promise<void>;
   listCheckpoints(): Checkpoint[];
+  verify(itemId: string): Promise<VerifyResult>;
+  verifyCheckpoint(checkpointId: string): Promise<VerifyResult>;
+}
+
+export interface VerifyResult {
+  valid: boolean;
+  target: string;
+  expectedHash: string;
+  actualHash: string;
+  error?: string;
 }
 
 export interface MemoryWriteInput {

@@ -258,4 +258,49 @@ describe("MemoryStore", () => {
       expect(store.count()).toBe(1);
     });
   });
+
+  describe("verify", () => {
+    it("verifies a valid memory item", async () => {
+      const item = await store.write(makeInput({ content: "verified content" }));
+      const result = await store.verify(item.id);
+      expect(result.valid).toBe(true);
+      expect(result.target).toBe(item.id);
+      expect(result.expectedHash).toBe(result.actualHash);
+    });
+
+    it("returns invalid for nonexistent item", async () => {
+      const result = await store.verify("nonexistent");
+      expect(result.valid).toBe(false);
+      expect(result.error).toBe("Item not found");
+    });
+
+    it("verifies with SHA-256 when crypto is provided", async () => {
+      const policyEngine = createPolicyEngine({ defaultDeny: false });
+      const auditSink = createMemoryAuditSink();
+      const crypto = createNodeCryptoProvider();
+      const cryptoStore = createMemoryStore({ policyEngine, auditSink, crypto });
+
+      const item = await cryptoStore.write(makeInput({ content: "sha256 test" }));
+      const result = await cryptoStore.verify(item.id);
+      expect(result.valid).toBe(true);
+      expect(result.expectedHash).toHaveLength(64); // SHA-256
+    });
+  });
+
+  describe("verifyCheckpoint", () => {
+    it("verifies a valid checkpoint", async () => {
+      await store.write(makeInput({ content: "before cp" }));
+      const cp = await store.checkpoint("test checkpoint");
+
+      const result = await store.verifyCheckpoint(cp.checkpointId);
+      expect(result.valid).toBe(true);
+      expect(result.target).toBe(cp.checkpointId);
+    });
+
+    it("returns invalid for nonexistent checkpoint", async () => {
+      const result = await store.verifyCheckpoint("nonexistent");
+      expect(result.valid).toBe(false);
+      expect(result.error).toBe("Checkpoint not found");
+    });
+  });
 });

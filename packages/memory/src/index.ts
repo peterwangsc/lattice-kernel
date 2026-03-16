@@ -3,5 +3,6 @@ export type {
   MemoryWriteInput,
   RetrieveOptions,
   MemoryStoreConfig,
+  VerifyResult,
 } from "./types.js";
 export { createMemoryStore } from "./memory-store.js";

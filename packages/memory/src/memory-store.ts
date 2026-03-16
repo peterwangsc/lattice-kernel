@@ -1,5 +1,5 @@
 import type { MemoryItem, ScopeRef, TrustLevel, Checkpoint } from "@lattice-kernel/schemas";
-import type { MemoryStore, MemoryStoreConfig, MemoryWriteInput, RetrieveOptions } from "./types.js";
+import type { MemoryStore, MemoryStoreConfig, MemoryWriteInput, RetrieveOptions, VerifyResult } from "./types.js";
 
 const TRUST_ORDER: TrustLevel[] = [
   "quarantined",
@@ -305,6 +305,50 @@ export function createMemoryStore(config: MemoryStoreConfig): MemoryStore {
           if (timeCmp !== 0) return timeCmp;
           return b.checkpointId.localeCompare(a.checkpointId);
         });
+    },
+
+    async verify(itemId: string): Promise<VerifyResult> {
+      const item = items.get(itemId);
+      if (!item) {
+        return {
+          valid: false,
+          target: itemId,
+          expectedHash: "",
+          actualHash: "",
+          error: "Item not found",
+        };
+      }
+
+      const actualHash = await computeHash(item.content + item.id);
+      return {
+        valid: actualHash === item.hash,
+        target: itemId,
+        expectedHash: item.hash,
+        actualHash,
+      };
+    },
+
+    async verifyCheckpoint(checkpointId: string): Promise<VerifyResult> {
+      const cp = checkpoints.get(checkpointId);
+      if (!cp) {
+        return {
+          valid: false,
+          target: checkpointId,
+          expectedHash: "",
+          actualHash: "",
+          error: "Checkpoint not found",
+        };
+      }
+
+      const actualHash = await computeHash(
+        [...cp.snapshot.values()].map((i) => i.hash).join(",") + checkpointId,
+      );
+      return {
+        valid: actualHash === cp.meta.hash,
+        target: checkpointId,
+        expectedHash: cp.meta.hash,
+        actualHash,
+      };
     },
   };
 }
