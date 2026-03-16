@@ -1,5 +1,38 @@
 # Learnings: Local Adaptive AI Runtime and Control Plane
 
+## Iteration 7 (2026-03-16)
+
+### What was built
+- **Streaming inference**: Full streaming pipeline from adapter → runtime → SDK
+  - `InferStreamChunk` type with text_delta, usage, done variants
+  - `BackendAdapter.inferStream` optional method returning `AsyncIterable`
+  - `runtime.inferStream()` with policy check, fallback for non-streaming adapters, audit on completion
+  - `lattice.inferStream(input)` in SDK
+  - Anthropic adapter: SSE parsing for content_block_delta, message_delta, message_stop events
+- **Total test count**: 165 unique tests across 7 packages — 7 new streaming tests
+
+### Architecture decisions made
+- **inferStream is optional on BackendAdapter**: Not all backends support streaming. The runtime provides a transparent fallback that wraps `infer()` output as a single text_delta + done sequence. This means SDK consumers always get a stream regardless of backend capability
+- **Audit after stream completion**: The runtime wraps the adapter stream with a `finally` block that emits the audit event after the stream is fully consumed. This ensures audit even if the consumer abandons the stream early
+- **AsyncIterable over callbacks**: Using `AsyncIterable<InferStreamChunk>` is idiomatic TypeScript and composes naturally with `for await...of`. No callback registration, no event emitters, no observable library needed
+- **SSE parsing in adapter, not in runtime**: The Anthropic-specific SSE event format (content_block_delta, message_delta, message_stop) is parsed in the adapter and mapped to the generic `InferStreamChunk` type. The runtime never sees provider-specific formats
+
+### Technical notes
+- Anthropic SSE events arrive as `data: {json}\n` lines. The adapter uses a `ReadableStream.getReader()` with text buffer to handle partial lines
+- The fallback streaming path (non-streaming adapter) is useful for testing and for local adapters that don't support streaming yet
+- `wrapStreamWithAudit` is an async generator inside `createRuntime` since it needs closure over `auditSink`
+- Testing SSE requires constructing a `ReadableStream` with `TextEncoder` — simpler than mocking the full fetch Response
+
+### What's next (suggested)
+- Control plane REST API for policy/audit management
+- OpenTelemetry integration: trace context through inference requests
+- Conversation/multi-turn support in the runtime (message history)
+- Tool use (function calling) in the Anthropic adapter
+- Adapter-level retry with exponential backoff
+- System prompt / prompt template support
+
+---
+
 ## Iteration 6 (2026-03-16)
 
 ### What was built
