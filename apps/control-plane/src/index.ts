@@ -78,4 +78,21 @@ server.listen(PORT, () => {
   console.log("  GET    /api/v1/openapi.json");
 });
 
+// Graceful shutdown
+function shutdown(signal: string) {
+  console.log(`\n${signal} received — shutting down gracefully`);
+  server.close(() => {
+    console.log("Server closed");
+    process.exit(0);
+  });
+  // Force exit after 5 seconds
+  setTimeout(() => {
+    console.error("Forced shutdown after timeout");
+    process.exit(1);
+  }, 5000);
+}
+
+process.on("SIGTERM", () => shutdown("SIGTERM"));
+process.on("SIGINT", () => shutdown("SIGINT"));
+
 export { router, policyEngine, policyStore, auditSink };
