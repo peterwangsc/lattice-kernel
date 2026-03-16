@@ -1,5 +1,29 @@
 # Learnings: Local Adaptive AI Runtime and Control Plane
 
+## Iteration 40 (2026-03-16)
+
+### What was built
+- **CLI supports local LLMs**: `BASE_URL=http://localhost:11434 MODEL=llama3` starts the CLI with a local server. No API key required for local servers
+- **3 new adapter tests**: Validates no-key behavior, custom baseUrl, and providerId for local endpoints
+- **Total**: 392 tests, 141 commits, 40 iterations
+
+### CLI usage patterns (complete)
+```bash
+# Local LLM (Ollama, vLLM, LM Studio — no API key needed)
+BASE_URL=http://localhost:11434 MODEL=llama3 pnpm --filter @lattice-kernel/cli start
+
+# OpenAI
+OPENAI_API_KEY=sk-... PROVIDER=openai pnpm --filter @lattice-kernel/cli start
+
+# Anthropic
+ANTHROPIC_API_KEY=sk-ant-... pnpm --filter @lattice-kernel/cli start
+
+# Any OpenAI-compatible API
+BASE_URL=https://your-api.com API_KEY=... MODEL=your-model pnpm --filter @lattice-kernel/cli start
+```
+
+---
+
 ## Iteration 39 (2026-03-16)
 
 ### What was built
