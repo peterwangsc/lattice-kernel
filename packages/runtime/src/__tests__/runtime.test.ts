@@ -4,6 +4,7 @@ import { createPolicyEngine } from "@lattice-kernel/policy-engine";
 import { createMemoryAuditSink } from "@lattice-kernel/audit";
 import type { BackendAdapter, PolicyRule, InferStreamChunk } from "@lattice-kernel/schemas";
 import type { Runtime, ToolAdapter } from "../types.js";
+import { createRequestContext } from "../context.js";
 
 function createMockAdapter(
   overrides: Partial<BackendAdapter> & { providerId: string },
@@ -87,6 +88,33 @@ describe("Runtime", () => {
       expect(result.route).toBe("test-local");
       expect(result.durationMs).toBeGreaterThanOrEqual(0);
       expect(result.policyDecision.allowed).toBe(true);
+    });
+
+    it("propagates request context through infer", async () => {
+      const ctx = createRequestContext({
+        scope: { tenantId: "acme" },
+        trustLevel: "trusted_admin",
+      });
+
+      const result = await runtime.infer({
+        input: "test",
+        trustLevel: "trusted_admin",
+        context: ctx,
+      });
+
+      expect(result.requestId).toBe(ctx.requestId);
+      expect(result.traceId).toBe(ctx.traceId);
+      expect(result.spanId).toBe(ctx.spanId);
+    });
+
+    it("generates requestId when no context provided", async () => {
+      const result = await runtime.infer({
+        input: "test",
+        trustLevel: "trusted_user_explicit",
+      });
+
+      expect(result.requestId).toMatch(/^req_/);
+      expect(result.traceId).toBeUndefined();
     });
 
     it("emits audit event on successful infer", async () => {

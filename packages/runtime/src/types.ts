@@ -12,6 +12,7 @@ import type {
   InferStreamChunk,
   Message,
   ToolDefinition,
+  RequestContext,
 } from "@lattice-kernel/schemas";
 import type { PolicyEngine } from "@lattice-kernel/policy-engine";
 import type { AuditSink } from "@lattice-kernel/audit";
@@ -39,10 +40,13 @@ export interface InferOptions {
   trustLevel: TrustLevel;
   maxTokens?: number;
   temperature?: number;
+  context?: RequestContext;
 }
 
 export interface InferResult {
   requestId: string;
+  traceId?: string;
+  spanId?: string;
   output: string;
   model: string;
   route: string;

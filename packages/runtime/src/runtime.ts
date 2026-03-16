@@ -107,7 +107,10 @@ export function createRuntime(config: RuntimeConfig): Runtime {
 
   return {
     async infer(options: InferOptions): Promise<InferResult> {
-      const requestId = nextRequestId();
+      const ctx = options.context;
+      const requestId = ctx?.requestId ?? nextRequestId();
+      const traceId = ctx?.traceId;
+      const spanId = ctx?.spanId;
       const startMs = Date.now();
 
       // Policy check
@@ -174,6 +177,8 @@ export function createRuntime(config: RuntimeConfig): Runtime {
 
       return {
         requestId,
+        traceId,
+        spanId,
         output: adapterResponse.output,
         model: adapterResponse.modelId,
         route,
