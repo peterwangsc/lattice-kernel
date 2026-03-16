@@ -6,14 +6,23 @@ import type {
   InferResponse,
   EmbedResponse,
   PolicyDecision,
+  Plan,
+  PlanStep,
+  Action,
 } from "@lattice-kernel/schemas";
 import type { PolicyEngine } from "@lattice-kernel/policy-engine";
 import type { AuditSink } from "@lattice-kernel/audit";
+
+export interface ToolAdapter {
+  readonly toolId: string;
+  execute(input: Record<string, unknown>): Promise<Record<string, unknown>>;
+}
 
 export interface RuntimeConfig {
   adapters: BackendAdapter[];
   policyEngine: PolicyEngine;
   auditSink: AuditSink;
+  tools?: ToolAdapter[];
 }
 
 export interface InferOptions {
@@ -51,9 +60,32 @@ export interface EmbedResult {
   adapterResponse: EmbedResponse;
 }
 
+export interface PlanOptions {
+  goal: string;
+  scope?: ScopeRef;
+  trustLevel: TrustLevel;
+  availableTools?: string[];
+  steps?: PlanStep[];
+}
+
+export interface ActOptions {
+  tool: string;
+  input: Record<string, unknown>;
+  scope?: ScopeRef;
+  trustLevel: TrustLevel;
+  planRef?: string;
+}
+
+export interface ActResult {
+  action: Action;
+  policyDecision: PolicyDecision;
+}
+
 export interface Runtime {
   infer(options: InferOptions): Promise<InferResult>;
   embed(options: EmbedOptions): Promise<EmbedResult>;
+  plan(options: PlanOptions): Promise<Plan>;
+  act(options: ActOptions): Promise<ActResult>;
   listAvailableModels(): Promise<string[]>;
   healthCheck(): Promise<Record<string, boolean>>;
 }

@@ -1,5 +1,15 @@
-import type { RuntimeConfig, Runtime, InferOptions, InferResult, EmbedOptions, EmbedResult } from "./types.js";
-import type { BackendAdapter } from "@lattice-kernel/schemas";
+import type {
+  RuntimeConfig,
+  Runtime,
+  InferOptions,
+  InferResult,
+  EmbedOptions,
+  EmbedResult,
+  PlanOptions,
+  ActOptions,
+  ActResult,
+} from "./types.js";
+import type { BackendAdapter, Plan } from "@lattice-kernel/schemas";
 
 let requestCounter = 0;
 function nextRequestId(): string {
@@ -7,7 +17,8 @@ function nextRequestId(): string {
 }
 
 export function createRuntime(config: RuntimeConfig): Runtime {
-  const { adapters, policyEngine, auditSink } = config;
+  const { adapters, policyEngine, auditSink, tools = [] } = config;
+  const toolMap = new Map(tools.map((t) => [t.toolId, t]));
 
   async function selectAdapter(
     preference: string | undefined,
@@ -156,6 +167,147 @@ export function createRuntime(config: RuntimeConfig): Runtime {
         durationMs,
         adapterResponse,
       };
+    },
+
+    async plan(options: PlanOptions): Promise<Plan> {
+      const requestId = nextRequestId();
+
+      // Policy check for planning
+      const policyDecision = policyEngine.evaluate({
+        operation: "canPlan",
+        scope: options.scope ?? {},
+        trustLevel: options.trustLevel,
+      });
+
+      if (!policyDecision.allowed) {
+        await auditSink.emit({
+          eventId: `evt_${requestId}`,
+          type: "plan",
+          requestId,
+          scope: options.scope ?? {},
+          trustLevel: options.trustLevel,
+          timestamp: new Date().toISOString(),
+          actor: "runtime",
+          policyDecisions: policyDecision.matchedRules,
+          error: policyDecision.reason ?? "Policy denied plan",
+        });
+        throw new Error(
+          `Policy denied plan: ${policyDecision.reason ?? "no reason given"}`,
+        );
+      }
+
+      // Build the plan from provided steps or create a single-step plan
+      const steps = options.steps ?? [
+        {
+          id: `step_${requestId}_1`,
+          description: options.goal,
+          requiredTools: options.availableTools ?? [],
+          dependencies: [],
+          riskFlags: [],
+          requiresApproval: false,
+        },
+      ];
+
+      const plan: Plan = {
+        planId: `plan_${requestId}`,
+        intent: options.goal,
+        steps,
+        createdAt: new Date().toISOString(),
+        status: "draft",
+      };
+
+      await auditSink.emit({
+        eventId: `evt_${requestId}`,
+        type: "plan",
+        requestId,
+        scope: options.scope ?? {},
+        trustLevel: options.trustLevel,
+        timestamp: new Date().toISOString(),
+        actor: "runtime",
+        policyDecisions: policyDecision.matchedRules,
+      });
+
+      return plan;
+    },
+
+    async act(options: ActOptions): Promise<ActResult> {
+      const requestId = nextRequestId();
+
+      // Policy check for action
+      const policyDecision = policyEngine.evaluate({
+        operation: "canAct",
+        scope: options.scope ?? {},
+        tool: options.tool,
+        trustLevel: options.trustLevel,
+      });
+
+      if (!policyDecision.allowed) {
+        await auditSink.emit({
+          eventId: `evt_${requestId}`,
+          type: "act",
+          requestId,
+          scope: options.scope ?? {},
+          trustLevel: options.trustLevel,
+          timestamp: new Date().toISOString(),
+          actor: "runtime",
+          policyDecisions: policyDecision.matchedRules,
+          error: policyDecision.reason ?? "Policy denied action",
+        });
+        throw new Error(
+          `Policy denied action on tool "${options.tool}": ${policyDecision.reason ?? "no reason given"}`,
+        );
+      }
+
+      if (policyDecision.requiresApproval) {
+        await auditSink.emit({
+          eventId: `evt_${requestId}`,
+          type: "act",
+          requestId,
+          scope: options.scope ?? {},
+          trustLevel: options.trustLevel,
+          timestamp: new Date().toISOString(),
+          actor: "runtime",
+          policyDecisions: policyDecision.matchedRules,
+          error: "Action requires approval — not yet implemented",
+        });
+        throw new Error(
+          `Action on tool "${options.tool}" requires approval`,
+        );
+      }
+
+      // Find the tool adapter
+      const toolAdapter = toolMap.get(options.tool);
+      if (!toolAdapter) {
+        throw new Error(`Tool not found: ${options.tool}`);
+      }
+
+      // Execute the tool
+      const result = await toolAdapter.execute(options.input);
+
+      const action = {
+        actionId: `act_${requestId}`,
+        actor: "runtime",
+        requestId,
+        planRef: options.planRef,
+        tool: options.tool,
+        input: options.input,
+        policyDecision: policyDecision.matchedRules.join(",") || "allowed",
+        result,
+        timestamp: new Date().toISOString(),
+      };
+
+      await auditSink.emit({
+        eventId: `evt_${requestId}`,
+        type: "act",
+        requestId,
+        scope: options.scope ?? {},
+        trustLevel: options.trustLevel,
+        timestamp: new Date().toISOString(),
+        actor: "runtime",
+        policyDecisions: policyDecision.matchedRules,
+      });
+
+      return { action, policyDecision };
     },
 
     async listAvailableModels(): Promise<string[]> {

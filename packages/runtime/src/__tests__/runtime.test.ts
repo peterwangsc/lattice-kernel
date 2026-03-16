@@ -2,8 +2,8 @@ import { describe, it, expect, beforeEach } from "vitest";
 import { createRuntime } from "../runtime.js";
 import { createPolicyEngine } from "@lattice-kernel/policy-engine";
 import { createMemoryAuditSink } from "@lattice-kernel/audit";
-import type { BackendAdapter } from "@lattice-kernel/schemas";
-import type { Runtime } from "../types.js";
+import type { BackendAdapter, PolicyRule } from "@lattice-kernel/schemas";
+import type { Runtime, ToolAdapter } from "../types.js";
 
 function createMockAdapter(
   overrides: Partial<BackendAdapter> & { providerId: string },
@@ -317,6 +317,178 @@ describe("Runtime", () => {
 
       const status = await rt.healthCheck();
       expect(status).toEqual({ ok: true, down: false });
+    });
+  });
+
+  describe("plan", () => {
+    it("creates a plan in draft status", async () => {
+      const plan = await runtime.plan({
+        goal: "Send weekly report email",
+        trustLevel: "trusted_user_explicit",
+        availableTools: ["email-send"],
+      });
+
+      expect(plan.planId).toBeTruthy();
+      expect(plan.intent).toBe("Send weekly report email");
+      expect(plan.status).toBe("draft");
+      expect(plan.steps.length).toBeGreaterThan(0);
+    });
+
+    it("accepts pre-built steps", async () => {
+      const plan = await runtime.plan({
+        goal: "Complex workflow",
+        trustLevel: "trusted_user_explicit",
+        steps: [
+          {
+            id: "s1",
+            description: "Fetch data",
+            requiredTools: ["api-call"],
+            dependencies: [],
+            riskFlags: [],
+            requiresApproval: false,
+          },
+          {
+            id: "s2",
+            description: "Process data",
+            requiredTools: [],
+            dependencies: ["s1"],
+            riskFlags: [],
+            requiresApproval: false,
+          },
+        ],
+      });
+
+      expect(plan.steps).toHaveLength(2);
+      expect(plan.steps[1]!.dependencies).toContain("s1");
+    });
+
+    it("emits audit event", async () => {
+      await runtime.plan({
+        goal: "test",
+        trustLevel: "trusted_user_explicit",
+      });
+
+      const events = await auditSink.query({ type: "plan" });
+      expect(events).toHaveLength(1);
+    });
+
+    it("throws when policy denies planning", async () => {
+      const policyEngine = createPolicyEngine({ defaultDeny: true });
+      const deniedRuntime = createRuntime({
+        adapters: [createMockAdapter({ providerId: "test" })],
+        policyEngine,
+        auditSink,
+      });
+
+      await expect(
+        deniedRuntime.plan({
+          goal: "test",
+          trustLevel: "trusted_user_explicit",
+        }),
+      ).rejects.toThrow("Policy denied plan");
+    });
+  });
+
+  describe("act", () => {
+    function createToolRuntime(tool: ToolAdapter, rules: PolicyRule[] = []): Runtime {
+      const policyEngine = createPolicyEngine({ defaultDeny: false });
+      for (const rule of rules) {
+        policyEngine.addRule(rule);
+      }
+      return createRuntime({
+        adapters: [createMockAdapter({ providerId: "test" })],
+        policyEngine,
+        auditSink,
+        tools: [tool],
+      });
+    }
+
+    it("executes a tool and returns action result", async () => {
+      const tool: ToolAdapter = {
+        toolId: "calculator",
+        async execute(input) {
+          const a = input.a as number;
+          const b = input.b as number;
+          return { result: a + b };
+        },
+      };
+
+      const rt = createToolRuntime(tool);
+      const result = await rt.act({
+        tool: "calculator",
+        input: { a: 2, b: 3 },
+        trustLevel: "trusted_user_explicit",
+      });
+
+      expect(result.action.tool).toBe("calculator");
+      expect(result.action.result).toEqual({ result: 5 });
+      expect(result.policyDecision.allowed).toBe(true);
+    });
+
+    it("emits audit event for action", async () => {
+      const tool: ToolAdapter = {
+        toolId: "noop",
+        async execute() {
+          return {};
+        },
+      };
+
+      const rt = createToolRuntime(tool);
+      await rt.act({
+        tool: "noop",
+        input: {},
+        trustLevel: "trusted_user_explicit",
+      });
+
+      const events = await auditSink.query({ type: "act" });
+      expect(events).toHaveLength(1);
+    });
+
+    it("throws when tool not found", async () => {
+      await expect(
+        runtime.act({
+          tool: "nonexistent",
+          input: {},
+          trustLevel: "trusted_user_explicit",
+        }),
+      ).rejects.toThrow("Tool not found");
+    });
+
+    it("throws when policy denies action", async () => {
+      const policyEngine = createPolicyEngine({ defaultDeny: true });
+      const rt = createRuntime({
+        adapters: [createMockAdapter({ providerId: "test" })],
+        policyEngine,
+        auditSink,
+        tools: [{ toolId: "test", async execute() { return {}; } }],
+      });
+
+      await expect(
+        rt.act({
+          tool: "test",
+          input: {},
+          trustLevel: "trusted_user_explicit",
+        }),
+      ).rejects.toThrow("Policy denied action");
+    });
+
+    it("includes plan reference in action when provided", async () => {
+      const tool: ToolAdapter = {
+        toolId: "email",
+        async execute() {
+          return { sent: true };
+        },
+      };
+
+      const rt = createToolRuntime(tool);
+      const result = await rt.act({
+        tool: "email",
+        input: { to: "user@example.com" },
+        trustLevel: "trusted_user_explicit",
+        planRef: "plan_123",
+      });
+
+      expect(result.action.planRef).toBe("plan_123");
     });
   });
 });
