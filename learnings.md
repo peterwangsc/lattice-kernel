@@ -1,5 +1,31 @@
 # Learnings: Local Adaptive AI Runtime and Control Plane
 
+## Iteration 14 (2026-03-16)
+
+### What was built
+- **Control plane REST API**: HTTP server with modular router supporting path params and method matching. Endpoints for health, policy CRUD, and paginated audit queries. Uses SQLite for persistent audit storage. 9 tests with mocked HTTP
+- **Total test count**: 264 unique tests across 9 packages
+
+### Architecture decisions made
+- **No framework dependency**: Uses Node.js built-in `http.createServer` with custom router. The control plane is simple enough that Express/Fastify aren't needed — keeps deps minimal
+- **Custom router with `:param` patterns**: Converts to regex groups. Sufficient for REST patterns like `/policies/:ruleId`
+- **Query params for audit filtering**: Standard REST practice, works with browser tools
+- **Mock HTTP objects for testing**: EventEmitter-based mocks for IncomingMessage/ServerResponse — fast and isolated without starting a real server
+
+### Technical notes
+- Configurable via `PORT` (default 3100) and `DB_PATH` env vars
+- Runnable with: `pnpm --filter @lattice-kernel/control-plane start`
+- Exports `router`, `policyEngine`, `auditSink` for testing/extension
+
+### What's next (suggested)
+- CORS and auth for control plane API
+- Expose storage package through SDK
+- OpenAPI spec generation
+- Dashboard UI
+- Full-stack integration test (SQLite + control plane + runtime)
+
+---
+
 ## Iteration 13 (2026-03-16)
 
 ### What was built
