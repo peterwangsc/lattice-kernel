@@ -1,5 +1,32 @@
 # Learnings: Local Adaptive AI Runtime and Control Plane
 
+## Iteration 15 (2026-03-16)
+
+### What was built
+- **Full-stack integration tests**: 6 end-to-end tests validating SQLite storage + runtime + policy + audit + crypto working together. Covers: inference with audit, memory pipeline with retention, checkpoint/rollback, encrypted memory over SQLite, policy denial, multi-tenant isolation
+- **createPersistentLattice**: One-line factory in storage package wiring SQLite memory + SQLite audit + policy engine + runtime. Shares single DB path for both tables
+- **CORS middleware**: Configurable CORS for control plane. Handles OPTIONS preflight. 3 new tests
+- **Total test count**: 273 unique tests across 9 packages
+
+### Architecture decisions made
+- **Storage package owns the persistent factory**: `createPersistentLattice` lives in `@lattice-kernel/storage` (not SDK) because it depends on `better-sqlite3` (native module). SDK consumers who don't need persistence don't pay the native dependency cost
+- **Shared DB path for memory + audit**: Both SQLite stores use the same database file. SQLite handles concurrent table access well, and having a single file simplifies deployment and backup
+- **Integration tests in storage package**: Since storage already depends on all the core packages, it's the natural home for integration tests that wire everything together
+
+### Technical notes
+- The integration test for encrypted memory validates that content is encrypted in the SQLite store but decrypted when read through the encrypted wrapper — confirming at-rest encryption works correctly
+- CORS middleware returns `boolean` — `true` means the request was handled (OPTIONS preflight), `false` means continue to routing. Clean middleware composition pattern without framework abstractions
+
+### What's next (suggested)
+- Authentication middleware for control plane (API key or JWT)
+- Policy persistence (save/load rules to SQLite)
+- OpenAPI spec for control plane endpoints
+- Metrics endpoint (request counts, latencies, memory item counts)
+- Database migration system for schema evolution
+- Performance benchmarks
+
+---
+
 ## Iteration 14 (2026-03-16)
 
 ### What was built
