@@ -1,5 +1,33 @@
 # Learnings: Local Adaptive AI Runtime and Control Plane
 
+## Iteration 30 (2026-03-16)
+
+### What was built
+- **adapter-local tests**: 7 tests — providerId, capabilities (gguf/onnx), listModels, healthCheck, estimate (zero cost), infer/embed not-yet-implemented
+- **adapter-web tests**: 7 tests — same contract coverage for web adapter (onnx-web format)
+- **Total**: 378 tests across 13 packages, 113 commits, 30 iterations
+
+### Test coverage is now 100% across all packages
+Every package and app in the monorepo has test coverage:
+| Package | Tests |
+|---------|-------|
+| schemas | 8 |
+| policy-engine | 9 |
+| audit | 20 |
+| crypto | 11 |
+| memory | 82 |
+| runtime | 122 |
+| sdk | 17 |
+| adapter-cloud | 33 |
+| adapter-local | 7 |
+| adapter-web | 7 |
+| storage | 37 |
+| tooling | 2 |
+| control-plane | 23 |
+| **Total** | **378** |
+
+---
+
 ## Iteration 29 (2026-03-16)
 
 ### What was built
