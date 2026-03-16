@@ -1,5 +1,34 @@
 # Learnings: Local Adaptive AI Runtime and Control Plane
 
+## Iteration 29 (2026-03-16)
+
+### What was built
+- **.env.example**: Documents all control plane env vars (PORT, DB_PATH, API_KEYS, RATE_LIMIT, API keys)
+- **Sandbox demo v3**: Now showcases 9 features — added prompt templates, structured error handling (PolicyDeniedError catch), and cost-aware routing. All features demonstrated in a single runnable app
+- **SDK InferOptions**: Added maxLatencyMs/maxCost to SDK InferOptions, wired through to runtime
+- **CLAUDE.md update**: 364 tests, M0-M5 all COMPLETE, 10 ADRs
+- **Total**: 364 tests, 111 commits, 29 iterations
+
+### Project completion status
+All program.md deliverables are now complete:
+- **5/5 milestones** delivered (M0 Foundation → M5 Reference Products)
+- **8/8 open questions** resolved with ADRs
+- **7/7 test categories** from spec 20.2 covered
+- **7/7 architecture layers** from spec section 9 implemented
+- **10/10 API verbs** implemented (infer, embed, remember, retrieve, plan, act, checkpoint, rollback, verify + inferStream)
+- **12 REST endpoints** in control plane
+- **10 ADRs** documenting architectural decisions
+- **2 LLM adapters** (Anthropic + OpenAI) with full feature parity
+- **3 adapter decorators** (composite, retry, rate-limit)
+- **3 memory store decorators** (encrypted, embedding, vector scoring)
+- **3 storage backends** (in-memory, SQLite memory, SQLite audit, SQLite policy)
+- **Docker + Compose** for deployment
+- **CI/CD** with GitHub Actions
+- **ESLint** for code quality
+- **Benchmark suite** for performance characterization
+
+---
+
 ## Iteration 28 (2026-03-16)
 
 ### What was built
