@@ -1,5 +1,19 @@
 # Learnings: Local Adaptive AI Runtime and Control Plane
 
+## Iteration 37 (2026-03-16)
+
+### What was built
+- **OpenAPI spec updated**: All 16 endpoints now documented including memory and checkpoint paths
+- **Persistent storage example**: `examples/persistent.ts` showing SQLite-backed createPersistentLattice
+- **Gitignore**: Added `*.db`, `*.db-wal`, `*.db-shm` to prevent SQLite files from being committed
+- **Total**: 389 tests, 133 commits
+
+### Examples now cover both usage modes
+1. `examples/quickstart.ts` — in-memory, minimal, SDK-focused
+2. `examples/persistent.ts` — SQLite-backed, shows storage package directly
+
+---
+
 ## Iteration 36 (2026-03-16)
 
 ### What was built
