@@ -13,7 +13,7 @@ The founding specification lives in `program.md`. Development history is in `lea
 ```bash
 pnpm install          # Install all dependencies
 pnpm build            # Build all packages (respects dependency order)
-pnpm test             # Run 364 tests across 9 packages
+pnpm test             # Run 403 tests across 15 suites
 pnpm lint             # ESLint with typescript-eslint
 pnpm typecheck        # Type-check without emitting
 
@@ -68,7 +68,7 @@ const result = await runToolLoop(lattice.getRuntime(), tools, toolDefs, inferOpt
 
 - **Language:** TypeScript monorepo (pnpm workspace, 12 packages + 2 apps)
 - **Validation:** zod
-- **Testing:** vitest (364 tests)
+- **Testing:** vitest (403 tests across 15 suites)
 - **Linting:** ESLint + typescript-eslint (flat config)
 - **CI:** GitHub Actions (Node 20 + 22, build → typecheck → lint → test)
 - **Crypto:** node:crypto (AES-256-GCM, SHA-256)
