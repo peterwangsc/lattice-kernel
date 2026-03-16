@@ -1,4 +1,6 @@
 export { createRuntime } from "./runtime.js";
+export { explainPolicyDecision } from "./explain.js";
+export type { DecisionExplanation } from "./explain.js";
 export { createModelRegistry } from "./model-registry.js";
 export { createCompositeAdapter } from "./composite-adapter.js";
 export type { CompositeAdapterConfig } from "./composite-adapter.js";
