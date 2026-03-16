@@ -40,6 +40,8 @@ export interface InferOptions {
   trustLevel: TrustLevel;
   maxTokens?: number;
   temperature?: number;
+  maxLatencyMs?: number;
+  maxCost?: number;
   context?: RequestContext;
 }
 

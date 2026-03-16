@@ -43,6 +43,7 @@ export function createRuntime(config: RuntimeConfig): Runtime {
   async function selectAdapter(
     preference: string | undefined,
     modelId?: string,
+    constraints?: { maxLatencyMs?: number; maxCost?: number; input?: string },
   ): Promise<BackendAdapter> {
     if (adapters.length === 0) {
       throw new NoAdaptersError();
@@ -57,6 +58,7 @@ export function createRuntime(config: RuntimeConfig): Runtime {
       }
     }
 
+    // Preference-based selection
     for (const adapter of adapters) {
       const caps = await adapter.getCapabilities();
 
@@ -65,6 +67,21 @@ export function createRuntime(config: RuntimeConfig): Runtime {
       }
       if (preference === "cloud" && caps.supportsCloudExecution) {
         return adapter;
+      }
+    }
+
+    // Cost/latency-aware selection when constraints provided
+    if (constraints?.maxLatencyMs !== undefined || constraints?.maxCost !== undefined) {
+      const request = { modelId: modelId ?? "default", input: constraints.input ?? "" };
+      for (const adapter of adapters) {
+        const estimate = await adapter.estimate(request);
+        const latencyOk = constraints.maxLatencyMs === undefined ||
+          (estimate.estimatedLatencyMs !== undefined && estimate.estimatedLatencyMs <= constraints.maxLatencyMs);
+        const costOk = constraints.maxCost === undefined ||
+          (estimate.estimatedCost !== undefined && estimate.estimatedCost <= constraints.maxCost);
+        if (latencyOk && costOk) {
+          return adapter;
+        }
       }
     }
 
@@ -148,10 +165,15 @@ export function createRuntime(config: RuntimeConfig): Runtime {
         );
       }
 
-      // Route selection (model-aware)
+      // Route selection (model-aware, cost-aware)
       const adapter = await selectAdapter(
         options.executionPreference,
         options.model,
+        {
+          maxLatencyMs: options.maxLatencyMs,
+          maxCost: options.maxCost,
+          input: options.input,
+        },
       );
       const route = adapter.providerId;
 
@@ -230,6 +252,7 @@ export function createRuntime(config: RuntimeConfig): Runtime {
       const adapter = await selectAdapter(
         options.executionPreference,
         options.model,
+        { maxLatencyMs: options.maxLatencyMs, maxCost: options.maxCost, input: options.input },
       );
       const route = adapter.providerId;
 

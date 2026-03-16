@@ -328,6 +328,42 @@ describe("Runtime", () => {
       });
       expect(result.route).toBe("adapter-b");
     });
+
+    it("selects adapter within cost/latency constraints", async () => {
+      const expensive = createMockAdapter({
+        providerId: "expensive",
+        async estimate() {
+          return { estimatedLatencyMs: 5000, estimatedCost: 10 };
+        },
+        async getCapabilities() {
+          return { supportsLocalExecution: false, supportsCloudExecution: false, supportsAdaptation: false, supportedFormats: [] };
+        },
+      });
+      const cheap = createMockAdapter({
+        providerId: "cheap",
+        async estimate() {
+          return { estimatedLatencyMs: 100, estimatedCost: 0.1 };
+        },
+        async getCapabilities() {
+          return { supportsLocalExecution: false, supportsCloudExecution: false, supportsAdaptation: false, supportedFormats: [] };
+        },
+      });
+
+      const policyEngine = createPolicyEngine({ defaultDeny: false });
+      const rt = createRuntime({
+        adapters: [expensive, cheap],
+        policyEngine,
+        auditSink,
+      });
+
+      const result = await rt.infer({
+        input: "test",
+        trustLevel: "trusted_user_explicit",
+        maxLatencyMs: 1000,
+        maxCost: 1,
+      });
+      expect(result.route).toBe("cheap");
+    });
   });
 
   describe("embed", () => {
