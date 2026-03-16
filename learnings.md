@@ -1,5 +1,35 @@
 # Learnings: Local Adaptive AI Runtime and Control Plane
 
+## Iteration 13 (2026-03-16)
+
+### What was built
+- **SQLite memory store**: New `@lattice-kernel/storage` package with `createSqliteMemoryStore`. Full MemoryStore interface backed by SQLite with WAL mode, indexed scopes, text relevance ranking, checkpoint/rollback via JSON snapshots, retention enforcement. 16 tests including cross-instance persistence
+- **SQLite audit sink**: `createSqliteAuditSink` with paginated queries, indexed by type/requestId/timestamp/actor. All AuditQueryFilter fields supported including hasError and scope. 9 tests
+- **Total test count**: 255 unique tests across 8 packages
+
+### Architecture decisions made
+- **Separate storage package**: Rather than adding SQLite to memory or audit packages (which would make those packages depend on a native module), a new `@lattice-kernel/storage` package isolates the native dependency. Memory and audit remain pure TypeScript
+- **SQLite WAL mode**: Write-Ahead Logging provides much better concurrent read performance and doesn't block readers during writes — essential for a runtime that reads memory while writes are happening
+- **Checkpoint as JSON snapshot in SQLite**: The checkpoint stores all memory items as a JSON blob. Rollback uses a SQLite transaction to atomically replace all items. Simple and correct, though large stores would benefit from delta-based checkpoints
+- **`:memory:` for tests, file path for production**: The SQLite store accepts `dbPath` — `:memory:` for fast isolated tests, a real file path for persistence. This is the standard better-sqlite3 pattern
+- **`INSERT OR REPLACE` for audit events**: Prevents duplicate eventId errors if an event is emitted twice (idempotent writes)
+
+### Technical notes
+- `better-sqlite3` requires native compilation — `pnpm rebuild better-sqlite3` or `pnpm --filter @lattice-kernel/storage exec npm rebuild better-sqlite3` after install
+- SQLite prepared statements are created once at store initialization and reused — this is much faster than preparing on each call
+- The SQLite audit sink uses SQL `COUNT(*)` for total count on each query — acceptable for moderate event volumes, but would need cursor-based pagination for millions of events
+- The storage package is separate from the pnpm workspace root — `better-sqlite3` is a dependency of the package, not the root
+
+### What's next (suggested)
+- Control plane REST API using SQLite storage backends
+- Expose storage package through SDK for easy setup
+- SQLite-backed policy store for persistent rules
+- Migration support for schema evolution
+- Connection pooling / shared DB instance across stores
+- Benchmarking: in-memory vs SQLite performance comparison
+
+---
+
 ## Iteration 12 (2026-03-16)
 
 ### What was built
