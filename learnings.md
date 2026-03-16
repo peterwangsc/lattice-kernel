@@ -1,5 +1,22 @@
 # Learnings: Local Adaptive AI Runtime and Control Plane
 
+## Iteration 45 (2026-03-16)
+
+### What was built
+- **Audit resilience**: All runtime audit emit calls wrapped in `safeEmit()` — audit failures can't crash operations. Critical for production where audit services may be temporarily unavailable
+- **1 new test**: Inference succeeds with a completely broken audit sink
+- **Total**: 404 tests, 153 commits
+
+### Design principle: non-critical failures should be silent
+The audit sink, like the embedding function, follows the "non-fatal failure" pattern:
+- **Audit emit failure**: Silently caught, operation proceeds (this iteration)
+- **Embedding failure**: Silently caught, item still stored (iteration 24)
+- **Webhook delivery failure**: Calls onError callback, doesn't throw (iteration 19)
+
+The inverse applies for critical paths: policy denial and checkpoint-not-found always throw structured errors.
+
+---
+
 ## Iteration 44 (2026-03-16)
 
 ### What was built
