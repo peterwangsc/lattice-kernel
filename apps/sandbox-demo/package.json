@@ -16,7 +16,7 @@
     "build": "tsc",
     "typecheck": "tsc --noEmit",
     "clean": "rm -rf dist *.tsbuildinfo",
-    "lint": "echo 'no linter configured yet'",
+    "lint": "echo 'lint via root'",
     "test": "echo 'no tests configured yet'"
   },
   "dependencies": {
