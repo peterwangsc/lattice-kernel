@@ -1,5 +1,37 @@
 # Learnings: Local Adaptive AI Runtime and Control Plane
 
+## Iteration 10 (2026-03-16)
+
+### What was built
+- **Agentic tool loop**: `runToolLoop` orchestrates infer → tool_use → execute → tool_result → infer cycles. Configurable maxRounds, onToolUse approval callback, onToolResult logging. Handles missing tools, denial, multi-round execution. 8 new tests
+- **Tool definitions in InferOptions**: `tools` field wired through runtime to adapter, enabling model-driven tool selection
+- **SDK re-exports**: All runtime utilities now accessible from `@lattice-kernel/sdk` — ConversationManager, CompositeAdapter, RetryAdapter, RateLimitedAdapter, ModelRegistry, runToolLoop
+- **Lattice.getRuntime()**: Exposes underlying runtime for advanced usage (tool loop, direct model registry access)
+- **Sandbox demo v2**: Full showcase — adapter composition (retry + rate limit), multi-turn conversation, memory with retention, streaming, tool execution loop, checkpoint/rollback
+- **Total test count**: 203 unique tests across 7 packages
+
+### Architecture decisions made
+- **Tool loop is a standalone function, not a runtime method**: `runToolLoop(runtime, tools, defs, options, config)` is compositional — it takes a runtime and tools, not embedded inside the runtime. This keeps the runtime focused on single operations while the loop is an orchestration layer
+- **Tool loop builds message history incrementally**: Each round appends assistant messages and tool results to the messages array. The full history is passed back to the model on each round, maintaining context
+- **onToolUse as approval gate**: The callback returns a boolean — if false, a "denied" error is sent as tool_result instead of executing. This implements the spec's "high-risk tools require explicit approval" requirement without blocking on UI
+- **getRuntime() for advanced usage**: Rather than wrapping every runtime utility in SDK methods, `getRuntime()` provides escape hatch access. The SDK remains simple for common operations while power users can access the full runtime
+
+### Technical notes
+- The tool loop uses the runtime's infer method (not adapter directly) so policy checks still apply on every round
+- Mock adapter for tool use demo returns tool_use on first call, end_turn after receiving tool_result — simulates real agentic behavior
+- Adapter composition in demo: `createRetryAdapter(createRateLimitedAdapter(base, rateConfig), retryConfig)` — decorators compose naturally
+- The sandbox demo now demonstrates every major feature added across 10 iterations
+
+### What's next (suggested)
+- Control plane REST API for policy/audit management
+- OpenTelemetry trace context propagation
+- Persistent storage backends (SQLite for local, Postgres for cloud)
+- Prompt template system for reusable prompt patterns
+- Agent orchestration framework (multi-agent coordination)
+- CI/CD setup with GitHub Actions
+
+---
+
 ## Iteration 9 (2026-03-16)
 
 ### What was built
