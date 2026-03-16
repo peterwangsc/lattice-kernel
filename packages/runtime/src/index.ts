@@ -4,6 +4,8 @@ export { createCompositeAdapter } from "./composite-adapter.js";
 export type { CompositeAdapterConfig } from "./composite-adapter.js";
 export { createRetryAdapter } from "./retry-adapter.js";
 export type { RetryConfig } from "./retry-adapter.js";
+export { createRateLimitedAdapter } from "./rate-limiter.js";
+export type { RateLimiterConfig } from "./rate-limiter.js";
 export { createConversationManager } from "./conversation.js";
 export type {
   Conversation,
