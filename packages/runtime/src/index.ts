@@ -8,6 +8,8 @@ export { createRateLimitedAdapter } from "./rate-limiter.js";
 export type { RateLimiterConfig } from "./rate-limiter.js";
 export { createConversationManager } from "./conversation.js";
 export { createPromptTemplate, createPromptLibrary } from "./prompt-template.js";
+export { createRequestContext, createChildContext } from "./context.js";
+export type { CreateContextOptions } from "./context.js";
 export type {
   PromptTemplate,
   PromptTemplateConfig,
