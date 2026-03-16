@@ -2,13 +2,17 @@ import Database from "better-sqlite3";
 import type { MemoryItem, ScopeRef, TrustLevel, Checkpoint } from "@lattice-kernel/schemas";
 import { PolicyDeniedError, ApprovalRequiredError, CheckpointNotFoundError } from "@lattice-kernel/schemas";
 import type { MemoryStore, MemoryWriteInput, RetrieveOptions, VerifyResult } from "@lattice-kernel/memory";
+import { cosineSimilarity, textOverlapScore } from "@lattice-kernel/memory";
 import type { PolicyEngine } from "@lattice-kernel/policy-engine";
 import type { AuditSink } from "@lattice-kernel/audit";
+
+export type EmbedFunction = (content: string) => Promise<number[]>;
 
 export interface SqliteMemoryStoreConfig {
   dbPath: string;
   policyEngine: PolicyEngine;
   auditSink: AuditSink;
+  embed?: EmbedFunction;
 }
 
 const TRUST_ORDER: TrustLevel[] = [
@@ -39,7 +43,7 @@ function simpleHash(content: string): string {
 export function createSqliteMemoryStore(
   config: SqliteMemoryStoreConfig,
 ): MemoryStore {
-  const { policyEngine, auditSink } = config;
+  const { policyEngine, auditSink, embed } = config;
   const db = new Database(config.dbPath);
 
   // Enable WAL mode for better concurrent read performance
@@ -64,7 +68,8 @@ export function createSqliteMemoryStore(
       retention_policy TEXT,
       subject_refs TEXT NOT NULL,
       tags TEXT NOT NULL,
-      hash TEXT NOT NULL
+      hash TEXT NOT NULL,
+      embedding TEXT
     );
 
     CREATE INDEX IF NOT EXISTS idx_memory_scope
@@ -88,8 +93,8 @@ export function createSqliteMemoryStore(
   const insertItem = db.prepare(`
     INSERT INTO memory_items (id, scope_tenant, scope_app, scope_user, scope_session,
       type, content, source, provenance, classification, trust_level,
-      created_at, expires_at, retention_policy, subject_refs, tags, hash)
-    VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+      created_at, expires_at, retention_policy, subject_refs, tags, hash, embedding)
+    VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
   `);
 
   const selectById = db.prepare("SELECT * FROM memory_items WHERE id = ?");
@@ -164,6 +169,17 @@ export function createSqliteMemoryStore(
         if (ms > 0) expiresAt = new Date(Date.now() + ms).toISOString();
       }
 
+      // Generate embedding if embed function provided
+      let embeddingJson: string | null = null;
+      if (embed) {
+        try {
+          const vec = await embed(input.content);
+          embeddingJson = JSON.stringify(vec);
+        } catch {
+          // Embedding failure is non-fatal
+        }
+      }
+
       insertItem.run(
         id,
         input.scope.tenantId ?? null,
@@ -182,6 +198,7 @@ export function createSqliteMemoryStore(
         JSON.stringify(input.subjectRefs ?? []),
         JSON.stringify(input.tags ?? []),
         hash,
+        embeddingJson,
       );
 
       const item: MemoryItem = {
@@ -264,15 +281,37 @@ export function createSqliteMemoryStore(
         results = results.filter((item) => trustRank(item.trustLevel) >= minRank);
       }
 
-      // Text relevance ranking
-      const queryTerms = query.toLowerCase().split(/\s+/);
+      // Rank by embedding similarity if available, else text overlap
+      if (embed) {
+        try {
+          const queryEmbedding = await embed(query);
+          // Build embedding map from rows
+          const embeddingMap = new Map<string, number[]>();
+          for (const row of rows) {
+            if (row.embedding) {
+              embeddingMap.set(row.id as string, JSON.parse(row.embedding as string));
+            }
+          }
+
+          if (embeddingMap.size > 0) {
+            results.sort((a, b) => {
+              const embA = embeddingMap.get(a.id);
+              const embB = embeddingMap.get(b.id);
+              const scoreA = embA ? cosineSimilarity(queryEmbedding, embA) : 0;
+              const scoreB = embB ? cosineSimilarity(queryEmbedding, embB) : 0;
+              return scoreB - scoreA;
+            });
+            return results.slice(0, topK);
+          }
+        } catch {
+          // Fall through to text scoring
+        }
+      }
+
+      // Fallback: text overlap scoring
       results.sort((a, b) => {
-        const scoreA = queryTerms.filter((t) =>
-          a.content.toLowerCase().includes(t),
-        ).length;
-        const scoreB = queryTerms.filter((t) =>
-          b.content.toLowerCase().includes(t),
-        ).length;
+        const scoreA = textOverlapScore(query, a.content);
+        const scoreB = textOverlapScore(query, b.content);
         return scoreB - scoreA;
       });
 
@@ -391,6 +430,7 @@ export function createSqliteMemoryStore(
             JSON.stringify(item.subjectRefs),
             JSON.stringify(item.tags),
             item.hash,
+            null, // embedding lost on rollback
           );
         }
       });
