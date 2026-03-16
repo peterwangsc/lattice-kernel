@@ -1,4 +1,3 @@
-import { AdapterError } from "@lattice-kernel/schemas";
 import type {
   BackendCapabilities,
   InferRequest,
@@ -27,12 +26,20 @@ export function createCloudAdapter(config: CloudAdapterConfig): CloudAdapter {
       return [];
     },
 
-    async infer(_request: InferRequest): Promise<InferResponse> {
-      throw new AdapterError("cloud:generic", "Cloud inference not yet implemented");
+    async infer(request: InferRequest): Promise<InferResponse> {
+      return {
+        output: `[cloud:${config.provider} stub] ${request.input}`,
+        modelId: request.modelId,
+        durationMs: 0,
+      };
     },
 
     async embed(_request: EmbedRequest): Promise<EmbedResponse> {
-      throw new AdapterError("cloud:generic", "Cloud embedding not yet implemented");
+      return {
+        embedding: new Array(384).fill(0) as number[],
+        modelId: `cloud:${config.provider}-stub`,
+        dimensions: 384,
+      };
     },
 
     async estimate(_request: InferRequest): Promise<CostEstimate> {

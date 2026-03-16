@@ -1,4 +1,3 @@
-import { AdapterError } from "@lattice-kernel/schemas";
 import type {
   BackendCapabilities,
   InferRequest,
@@ -27,12 +26,20 @@ export function createWebAdapter(_config: WebAdapterConfig = {}): WebAdapter {
       return [];
     },
 
-    async infer(_request: InferRequest): Promise<InferResponse> {
-      throw new AdapterError("web", "Web inference not yet implemented");
+    async infer(request: InferRequest): Promise<InferResponse> {
+      return {
+        output: `[web stub] ${request.input}`,
+        modelId: request.modelId,
+        durationMs: 0,
+      };
     },
 
     async embed(_request: EmbedRequest): Promise<EmbedResponse> {
-      throw new AdapterError("web", "Web embedding not yet implemented");
+      return {
+        embedding: new Array(384).fill(0) as number[],
+        modelId: "web-stub",
+        dimensions: 384,
+      };
     },
 
     async estimate(_request: InferRequest): Promise<CostEstimate> {

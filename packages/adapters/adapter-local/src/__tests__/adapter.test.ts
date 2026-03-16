@@ -31,15 +31,15 @@ describe("LocalAdapter", () => {
     expect(est.estimatedLatencyMs).toBe(0);
   });
 
-  it("infer throws not-implemented", async () => {
-    await expect(
-      adapter.infer({ modelId: "test", input: "hello" }),
-    ).rejects.toThrow("not yet implemented");
+  it("infer returns stub response", async () => {
+    const result = await adapter.infer({ modelId: "test", input: "hello" });
+    expect(result.output).toContain("[local stub]");
+    expect(result.output).toContain("hello");
   });
 
-  it("embed throws not-implemented", async () => {
-    await expect(
-      adapter.embed({ modelId: "test", content: "hello" }),
-    ).rejects.toThrow("not yet implemented");
+  it("embed returns zero embedding", async () => {
+    const result = await adapter.embed({ modelId: "test", content: "hello" });
+    expect(result.dimensions).toBe(384);
+    expect(result.embedding.length).toBe(384);
   });
 });
