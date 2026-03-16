@@ -13,7 +13,7 @@ The founding specification lives in `program.md`. Development history is in `lea
 ```bash
 pnpm install          # Install all dependencies
 pnpm build            # Build all packages (respects dependency order)
-pnpm test             # Run 286 tests across 9 packages
+pnpm test             # Run 364 tests across 9 packages
 pnpm lint             # ESLint with typescript-eslint
 pnpm typecheck        # Type-check without emitting
 
@@ -66,9 +66,9 @@ const result = await runToolLoop(lattice.getRuntime(), tools, toolDefs, inferOpt
 
 ## Technical Stack
 
-- **Language:** TypeScript monorepo (pnpm workspace, 9 packages + 2 apps)
+- **Language:** TypeScript monorepo (pnpm workspace, 12 packages + 2 apps)
 - **Validation:** zod
-- **Testing:** vitest (286 tests)
+- **Testing:** vitest (364 tests)
 - **Linting:** ESLint + typescript-eslint (flat config)
 - **CI:** GitHub Actions (Node 20 + 22, build → typecheck → lint → test)
 - **Crypto:** node:crypto (AES-256-GCM, SHA-256)
@@ -115,8 +115,8 @@ REST API at `localhost:3100` (configurable via PORT, DB_PATH, API_KEYS env vars)
 - **M2 Memory system:** COMPLETE — embed, remember, retrieve, provenance, scope isolation, retention, encrypted persistence
 - **M3 Planning/governance:** COMPLETE — plan, control plane API, policy CRUD, approval rules, metrics
 - **M4 Mutable state safety:** COMPLETE — checkpoint, rollback, verify (adaptation overlays deferred per spec v1)
-- **M5 Reference products:** PARTIAL — sandbox demo (benchmark suite remaining)
+- **M5 Reference products:** COMPLETE — sandbox demo + benchmark suite + quick-start example
 
 ## ADRs
 
-`docs/adr/`: 001-monorepo, 002-default-deny, 003-trust-taxonomy, 004-memory-pipeline, 005-adapter-contract, 006-checkpoint-rollback
+`docs/adr/`: 001-monorepo, 002-default-deny, 003-trust-taxonomy, 004-memory-pipeline, 005-adapter-contract, 006-checkpoint-rollback, 007-streaming-inference, 008-tool-use-architecture, 009-structured-errors, 010-open-questions-resolved
