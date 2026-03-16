@@ -16,6 +16,7 @@ import { registerMemoryRoutes } from "./routes/memory.js";
 import { cors } from "./middleware/cors.js";
 import { apiKeyAuth } from "./middleware/auth.js";
 import { rateLimit } from "./middleware/rate-limit.js";
+import { requestLogger } from "./middleware/logger.js";
 import { createPolicyEngine } from "@lattice-kernel/policy-engine";
 import {
   createSqliteAuditSink,
@@ -51,6 +52,7 @@ registerOpenApiRoutes(router);
 registerMemoryRoutes(router, memoryStore);
 
 // Middleware
+const logRequest = requestLogger();
 const applyCors = cors();
 const checkAuth = apiKeyAuth({ apiKeys: API_KEYS });
 const checkRateLimit = RATE_LIMIT > 0
@@ -60,6 +62,7 @@ const checkRateLimit = RATE_LIMIT > 0
 // Start server
 const server = createServer(async (req, res) => {
   try {
+    logRequest(req, res); // Always returns false, just attaches timing
     if (applyCors(req, res)) return;
     if (checkRateLimit?.(req, res)) return;
     if (checkAuth(req, res)) return;

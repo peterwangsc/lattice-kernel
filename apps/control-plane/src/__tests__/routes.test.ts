@@ -3,6 +3,8 @@ import { createRouter, json } from "../router.js";
 import { cors } from "../middleware/cors.js";
 import { apiKeyAuth } from "../middleware/auth.js";
 import { rateLimit } from "../middleware/rate-limit.js";
+import { requestLogger } from "../middleware/logger.js";
+import type { RequestLog } from "../middleware/logger.js";
 import { registerHealthRoutes } from "../routes/health.js";
 import { registerPolicyRoutes } from "../routes/policies.js";
 import { registerAuditRoutes } from "../routes/audit.js";
@@ -413,6 +415,36 @@ describe("Control Plane Routes", () => {
       const req2 = mockReq("GET", "/test");
       (req2 as unknown as Record<string, unknown>).socket = { remoteAddress: "10.0.0.2" };
       expect(limiter(req2, mockRes())).toBe(false);
+    });
+  });
+
+  describe("request logger", () => {
+    it("logs request with method, path, status, and timing", async () => {
+      const logs: RequestLog[] = [];
+      const logger = requestLogger((log) => logs.push(log));
+
+      const router = createRouter();
+      registerHealthRoutes(router);
+
+      const req = mockReq("GET", "/health");
+      const res = mockRes();
+
+      logger(req, res); // Attach logger
+      await router.handle(req, res);
+
+      expect(logs).toHaveLength(1);
+      expect(logs[0]!.method).toBe("GET");
+      expect(logs[0]!.path).toBe("/health");
+      expect(logs[0]!.status).toBe(200);
+      expect(logs[0]!.durationMs).toBeGreaterThanOrEqual(0);
+      expect(logs[0]!.timestamp).toBeTruthy();
+    });
+
+    it("always returns false (never handles request)", () => {
+      const logger = requestLogger(() => {});
+      const req = mockReq("GET", "/test");
+      const res = mockRes();
+      expect(logger(req, res)).toBe(false);
     });
   });
 });
