@@ -1,5 +1,22 @@
 # Learnings: Local Adaptive AI Runtime and Control Plane
 
+## Iteration 34 (2026-03-16)
+
+### What was built
+- **CI fixes**: 3 commits to get GitHub Actions green:
+  1. Removed duplicate pnpm version (action config vs packageManager)
+  2. Updated lockfile for runtime devDependencies
+  3. Added `npm rebuild better-sqlite3` step for native bindings in CI
+- **CI is now fully green** on both Node 20 and Node 22
+
+### CI debugging lessons
+- `pnpm/action-setup@v4` auto-detects `packageManager` field — don't also specify `version` in the action
+- `pnpm install --frozen-lockfile` fails if lockfile is out of sync — always commit lockfile changes
+- Native modules (better-sqlite3) need explicit `npm rebuild` in CI — `pnpm install --frozen-lockfile` may skip lifecycle scripts when using cached stores
+- `pnpm --filter @pkg exec npm rebuild better-sqlite3` is the reliable way to force native compilation within a workspace package
+
+---
+
 ## Iteration 33 (2026-03-16)
 
 ### What was built
