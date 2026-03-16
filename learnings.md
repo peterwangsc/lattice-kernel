@@ -1,5 +1,20 @@
 # Learnings: Local Adaptive AI Runtime and Control Plane
 
+## Iteration 33 (2026-03-16)
+
+### What was built
+- **Interactive CLI**: Chat REPL with streaming, memory commands (/remember, /recall, /checkpoint, /rollback), Anthropic + OpenAI support, retry adapter, conversation tracking
+- **Total**: 380 tests, 121 commits, 3 apps (control-plane, sandbox-demo, cli)
+
+### The system now has 3 runnable apps
+1. **sandbox-demo** — non-interactive demo showcasing all 9 features with mock adapter
+2. **control-plane** — production REST API with SQLite persistence, auth, rate limiting, CORS, logging
+3. **cli** — interactive REPL connecting to real LLM backends with memory and streaming
+
+Each serves a different purpose: demo for evaluation, control plane for operations, CLI for developer interaction.
+
+---
+
 ## Iteration 32 (2026-03-16)
 
 ### What was built
