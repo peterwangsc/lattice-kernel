@@ -1,5 +1,24 @@
 # Learnings: Local Adaptive AI Runtime and Control Plane
 
+## Iteration 32 (2026-03-16)
+
+### What was built
+- **Request logging middleware**: Structured JSON logs for every HTTP request — method, path, status, duration, IP, timestamp. Monkey-patches res.end for accurate timing. 2 tests
+- **README update**: Test count corrected to 380
+- **Total**: 380 tests, 119 commits
+
+### Control plane middleware stack (final)
+Execution order for every request:
+1. **Logger** — captures timing (always passes through)
+2. **CORS** — sets headers, handles OPTIONS preflight
+3. **Rate limit** — per-IP sliding window (optional)
+4. **Auth** — API key verification (optional)
+5. **Router** — route matching and handler execution
+
+All middleware follows the same pattern: `(req, res) => boolean`. True = handled (stop), false = continue.
+
+---
+
 ## Iteration 31 (2026-03-16)
 
 ### What was built
