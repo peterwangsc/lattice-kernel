@@ -1,16 +1,28 @@
 # Lattice Kernel
 
+[![CI](https://github.com/peterwangsc/lattice-kernel/actions/workflows/ci.yml/badge.svg)](https://github.com/peterwangsc/lattice-kernel/actions/workflows/ci.yml)
+
 A local adaptive AI runtime and enterprise control plane for building private, memory-bearing, policy-safe AI applications.
+
+| | |
+|---|---|
+| **Packages** | 13 packages + 3 apps |
+| **Tests** | 404 across 15 suites |
+| **Adapters** | Anthropic, OpenAI, any OpenAI-compatible (Ollama, vLLM, LM Studio) |
+| **Storage** | In-memory + SQLite (persistent) |
+| **API** | 16 REST endpoints with auth, CORS, rate limiting |
+| **Deployment** | Docker + Compose |
 
 ## What is this?
 
 Lattice Kernel is a systems-grade runtime for AI applications. It provides:
 
-- **Policy-gated inference** with local-first routing and cloud fallback
-- **Governed memory** with scope isolation, retention enforcement, and encryption at rest
-- **Agentic tool execution** with approval gating and structured plans
+- **Policy-gated inference** with local-first routing, cloud fallback, streaming, and multi-turn conversations
+- **Governed memory** with 4-level scope isolation, retention enforcement, encryption at rest, and embedding-based retrieval
+- **Agentic tool execution** with approval gating, structured plans, and automatic tool loops
 - **Persistent storage** (SQLite) for memory, audit logs, and policy rules
-- **Control plane** REST API for policy management and observability
+- **Control plane** REST API with 16 endpoints for policy management, memory, checkpoints, and observability
+- **Structured errors**, **prompt templates**, **request tracing**, and **decision explanations** for debuggability
 
 It is not a chatbot library or a thin wrapper around model APIs. It is infrastructure.
 
