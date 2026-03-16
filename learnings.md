@@ -1,5 +1,32 @@
 # Learnings: Local Adaptive AI Runtime and Control Plane
 
+## Iteration 28 (2026-03-16)
+
+### What was built
+- **ADR-010**: Resolution of all 8 spec open questions (section 23) with implementation references
+- **Cost/latency-aware route selection**: `maxLatencyMs` and `maxCost` on InferOptions. selectAdapter checks adapter.estimate() against constraints. 1 test
+- **Total**: 364 tests, 107 commits, 10 ADRs
+
+### All spec open questions resolved
+1. Policy format → priority rules with globs (ADR-002)
+2. Storage → SQLite + WAL + AES-256-GCM
+3. Trust vs relevance → relevance primary, trust tie-breaker
+4. Adaptation → deferred for v1, memory-based personalization
+5. Local backends → cloud-first, contract validated across providers
+6. Route selection → model/preference/capability/health/cost/latency (this iteration)
+7. Error model → typed hierarchy (ADR-009)
+8. Checkpoint granularity → full snapshots (ADR-006)
+
+### Route selection is now multi-factor
+Priority order in selectAdapter:
+1. Model-specific: registry maps model ID → adapter
+2. Preference: local/cloud execution preference
+3. Cost/latency: estimate() checked against maxLatencyMs/maxCost
+4. Health: first healthy adapter
+5. Fallback: first adapter in list
+
+---
+
 ## Iteration 27 (2026-03-16)
 
 ### What was built
