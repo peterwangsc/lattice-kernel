@@ -1,0 +1,16 @@
+{
+  "name": "lattice-kernel",
+  "private": true,
+  "description": "Local adaptive AI runtime and enterprise control plane",
+  "packageManager": "pnpm@10.12.1",
+  "engines": {
+    "node": ">=20"
+  },
+  "scripts": {
+    "build": "pnpm -r build",
+    "test": "pnpm -r test",
+    "lint": "pnpm -r lint",
+    "typecheck": "pnpm -r typecheck",
+    "clean": "pnpm -r clean"
+  }
+}
