@@ -5,6 +5,7 @@ import { apiKeyAuth } from "../middleware/auth.js";
 import { registerHealthRoutes } from "../routes/health.js";
 import { registerPolicyRoutes } from "../routes/policies.js";
 import { registerAuditRoutes } from "../routes/audit.js";
+import { registerMetricsRoutes } from "../routes/metrics.js";
 import { createPolicyEngine } from "@lattice-kernel/policy-engine";
 import { createMemoryAuditSink } from "@lattice-kernel/audit";
 import type { IncomingMessage, ServerResponse } from "node:http";
@@ -307,6 +308,48 @@ describe("Control Plane Routes", () => {
       const req = mockReq("GET", "/health");
       const res = mockRes();
       expect(checkAuth(req, res)).toBe(false);
+    });
+  });
+
+  describe("metrics", () => {
+    it("returns system metrics", async () => {
+      const router = createRouter();
+      const engine = createPolicyEngine({ defaultDeny: true });
+      engine.addRule({
+        id: "r1",
+        name: "test rule",
+        permissions: ["canInfer"],
+        effect: "allow",
+        priority: 1,
+      });
+      const sink = createMemoryAuditSink();
+      await sink.emit({
+        eventId: "evt_1",
+        type: "infer",
+        requestId: "req_1",
+        scope: {},
+        trustLevel: "trusted_user_explicit",
+        timestamp: new Date().toISOString(),
+        actor: "test",
+        policyDecisions: [],
+      });
+      registerMetricsRoutes(router, engine, sink);
+
+      const req = mockReq("GET", "/api/v1/metrics");
+      const res = mockRes();
+      await router.handle(req, res);
+
+      expect(res.statusCode).toBe(200);
+      const body = parseBody(res) as Record<string, unknown>;
+      const policy = body.policy as Record<string, unknown>;
+      expect(policy.ruleCount).toBe(1);
+
+      const audit = body.audit as Record<string, unknown>;
+      expect(audit.totalEvents).toBe(1);
+
+      const system = body.system as Record<string, unknown>;
+      expect(system.nodeVersion).toBeTruthy();
+      expect(system.uptime).toBeGreaterThan(0);
     });
   });
 });

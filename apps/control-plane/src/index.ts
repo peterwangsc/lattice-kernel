@@ -10,6 +10,7 @@ import { createRouter } from "./router.js";
 import { registerHealthRoutes } from "./routes/health.js";
 import { registerPolicyRoutes } from "./routes/policies.js";
 import { registerAuditRoutes } from "./routes/audit.js";
+import { registerMetricsRoutes } from "./routes/metrics.js";
 import { cors } from "./middleware/cors.js";
 import { apiKeyAuth } from "./middleware/auth.js";
 import { createPolicyEngine } from "@lattice-kernel/policy-engine";
@@ -28,6 +29,7 @@ const router = createRouter();
 registerHealthRoutes(router);
 registerPolicyRoutes(router, policyEngine);
 registerAuditRoutes(router, auditSink);
+registerMetricsRoutes(router, policyEngine, auditSink);
 
 // Middleware
 const applyCors = cors();
@@ -58,6 +60,7 @@ server.listen(PORT, () => {
   console.log("  POST /api/v1/policies");
   console.log("  DELETE /api/v1/policies/:ruleId");
   console.log("  GET  /api/v1/audit?type=infer&limit=10&offset=0");
+  console.log("  GET  /api/v1/metrics");
 });
 
 export { router, policyEngine, auditSink };
