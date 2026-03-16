@@ -2,6 +2,7 @@ import { describe, it, expect } from "vitest";
 import { createRouter, json } from "../router.js";
 import { cors } from "../middleware/cors.js";
 import { apiKeyAuth } from "../middleware/auth.js";
+import { rateLimit } from "../middleware/rate-limit.js";
 import { registerHealthRoutes } from "../routes/health.js";
 import { registerPolicyRoutes } from "../routes/policies.js";
 import { registerAuditRoutes } from "../routes/audit.js";
@@ -369,6 +370,49 @@ describe("Control Plane Routes", () => {
       expect(body.info).toBeDefined();
       expect(body.paths).toBeDefined();
       expect(body.components).toBeDefined();
+    });
+  });
+
+  describe("rate limit", () => {
+    it("allows requests within limit", () => {
+      const limiter = rateLimit({ maxRequests: 3, windowMs: 60000 });
+
+      for (let i = 0; i < 3; i++) {
+        const req = mockReq("GET", "/api/v1/policies");
+        (req as unknown as Record<string, unknown>).socket = { remoteAddress: "127.0.0.1" };
+        const res = mockRes();
+        expect(limiter(req, res)).toBe(false);
+      }
+    });
+
+    it("rejects requests over limit with 429", () => {
+      const limiter = rateLimit({ maxRequests: 2, windowMs: 60000 });
+
+      for (let i = 0; i < 2; i++) {
+        const req = mockReq("GET", "/test");
+        (req as unknown as Record<string, unknown>).socket = { remoteAddress: "127.0.0.1" };
+        limiter(req, mockRes());
+      }
+
+      const req = mockReq("GET", "/test");
+      (req as unknown as Record<string, unknown>).socket = { remoteAddress: "127.0.0.1" };
+      const res = mockRes();
+      expect(limiter(req, res)).toBe(true);
+      expect(res.statusCode).toBe(429);
+      const body = parseBody(res) as Record<string, unknown>;
+      expect(body.error).toBe("Too many requests");
+    });
+
+    it("tracks different IPs separately", () => {
+      const limiter = rateLimit({ maxRequests: 1, windowMs: 60000 });
+
+      const req1 = mockReq("GET", "/test");
+      (req1 as unknown as Record<string, unknown>).socket = { remoteAddress: "10.0.0.1" };
+      expect(limiter(req1, mockRes())).toBe(false);
+
+      const req2 = mockReq("GET", "/test");
+      (req2 as unknown as Record<string, unknown>).socket = { remoteAddress: "10.0.0.2" };
+      expect(limiter(req2, mockRes())).toBe(false);
     });
   });
 });

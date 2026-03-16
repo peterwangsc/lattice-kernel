@@ -14,6 +14,7 @@ import { registerMetricsRoutes } from "./routes/metrics.js";
 import { registerOpenApiRoutes } from "./routes/openapi.js";
 import { cors } from "./middleware/cors.js";
 import { apiKeyAuth } from "./middleware/auth.js";
+import { rateLimit } from "./middleware/rate-limit.js";
 import { createPolicyEngine } from "@lattice-kernel/policy-engine";
 import {
   createSqliteAuditSink,
@@ -23,6 +24,7 @@ import {
 const PORT = parseInt(process.env.PORT ?? "3100", 10);
 const DB_PATH = process.env.DB_PATH ?? "./lattice-control-plane.db";
 const API_KEYS = process.env.API_KEYS?.split(",").filter(Boolean) ?? [];
+const RATE_LIMIT = parseInt(process.env.RATE_LIMIT ?? "0", 10);
 
 // Initialize services
 const policyEngine = createPolicyEngine({ defaultDeny: true });
@@ -47,11 +49,15 @@ registerOpenApiRoutes(router);
 // Middleware
 const applyCors = cors();
 const checkAuth = apiKeyAuth({ apiKeys: API_KEYS });
+const checkRateLimit = RATE_LIMIT > 0
+  ? rateLimit({ maxRequests: RATE_LIMIT, windowMs: 60_000 })
+  : null;
 
 // Start server
 const server = createServer(async (req, res) => {
   try {
     if (applyCors(req, res)) return;
+    if (checkRateLimit?.(req, res)) return;
     if (checkAuth(req, res)) return;
     await router.handle(req, res);
   } catch (err) {
