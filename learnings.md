@@ -1,5 +1,37 @@
 # Learnings: Local Adaptive AI Runtime and Control Plane
 
+## Iteration 5 (2026-03-16)
+
+### What was built
+- **Anthropic Claude adapter**: Real BackendAdapter for Anthropic's Messages API with configurable model/key/baseUrl. Uses native fetch (no SDK dependency). Supports claude-sonnet-4-6 and claude-haiku-4-5. 13 tests with mocked fetch
+- **Model registry**: Centralized model management — aggregates models from all adapters, lookup by ID, filter by capability (embedding, tool calling, multimodal) or policy tag. First-adapter-wins for ID conflicts. 11 tests
+- **Encrypted memory store**: Decorator pattern wrapping any MemoryStore with AES-256-GCM encryption. Content encrypted on write, decrypted on read. Other fields stay plaintext for querying. 9 tests including cross-key isolation
+- **SDK crypto integration**: `LatticeConfig.crypto` optional field — when provided, memory is automatically encrypted at rest via the encrypted store wrapper
+- **Vitest dist fix**: Root vitest.config.ts excludes dist/ globally, fixing duplicate test execution from compiled JS
+- **Corrected test count**: 139 unique tests across 7 packages (was inflated to 197 by dist/ duplicates)
+
+### Architecture decisions made
+- **Anthropic adapter uses native fetch**: No @anthropic-ai/sdk dependency. The Messages API is simple enough that raw HTTP with proper headers is cleaner and avoids external dependency management
+- **Model registry first-adapter-wins**: When multiple adapters register the same model ID, the first adapter takes precedence. This makes ordering in the config array meaningful and predictable
+- **Encrypted store as decorator**: Rather than adding encryption into the base memory store (complicating the simple in-memory implementation), we wrap it with a decorator that encrypts/decrypts content transparently. This separation makes it easy to add encryption to any store implementation
+- **Text search limitation with encryption**: The encrypted store's text-based retrieval won't match against encrypted content. Scope/type/trust filters still work. Embedding-based search (when implemented) would operate on plaintext before encryption
+
+### Technical notes
+- Vitest's default `include` patterns match test files in both src/ and dist/. The root config override is the cleanest fix since it applies to all packages
+- The Anthropic adapter declares model descriptors statically rather than calling a models API — this avoids an extra API call and the models list is stable enough
+- `createEncryptedMemoryStore` always attempts decryption on read (no tracking of which items are encrypted). This is correct for a store where ALL content is encrypted
+- The SDK wires encrypted store automatically: `createLattice({ crypto: createNodeCryptoProvider() })` is all developers need
+
+### What's next (suggested)
+- Control plane REST API for policy management and audit querying
+- Retention enforcement: automated expiration based on retentionPolicy field
+- Composite adapter: tries local first, falls back to cloud (local-first principle)
+- OpenTelemetry integration for distributed tracing
+- More adapter implementations: OpenAI, local llama.cpp via adapter-local
+- Consider embedding-aware retrieval that operates on plaintext before encryption
+
+---
+
 ## Iteration 4 (2026-03-16)
 
 ### What was built
