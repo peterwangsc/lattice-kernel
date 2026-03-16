@@ -1,5 +1,35 @@
 # Learnings: Local Adaptive AI Runtime and Control Plane
 
+## Iteration 4 (2026-03-16)
+
+### What was built
+- **SDK plan/act**: Exposed `lattice.plan(goal)` and `lattice.act(tool)` through the SDK. LatticeConfig now accepts tools array. 4 new SDK tests
+- **Verify verb**: `store.verify(itemId)` and `store.verifyCheckpoint(checkpointId)` recompute hashes and compare against stored values. Works with both simpleHash and SHA-256. 5 new tests
+- **Multi-tenant isolation tests**: 9 tests validating scope isolation — tenant, app, user, session level isolation plus cross-tenant leakage prevention
+- **6 ADRs**: Monorepo structure, default-deny policy, trust level taxonomy, memory write pipeline, backend adapter contract, checkpoint/rollback design
+- **Total test count**: 197 tests across 6 packages, all passing
+
+### Architecture decisions made
+- **Verify recomputes, not stores-then-compares**: The verify methods recompute the hash from current content rather than storing a separate verification hash. This means verify catches both content tampering and hash corruption
+- **Multi-tenant scope model is hierarchical**: `{ tenantId, appId, userId, sessionId }` — querying at a higher level (e.g., tenantId only) sees all items within that tenant regardless of app/user/session. This matches the spec's scope hierarchy
+- **Checkpoint rollback is store-wide**: Rolling back restores ALL tenant data, not just one tenant's. Documented in ADR-006 as a known limitation — tenant-scoped rollback would require a different approach
+
+### Technical notes
+- ADRs follow a minimal format: Status, Context, Decision, Consequences. Each captures one decision with enough context to understand why
+- The SDK now covers all 10 spec verbs except `adapt` (intentionally deferred — spec says v1 should be conservative with adaptation)
+- VerifyResult includes both expectedHash and actualHash for debugging integrity failures
+- Multi-tenant tests revealed that memory retrieval with empty scope returns all items — this is by design (scope filtering is inclusive, not exclusive)
+
+### What's next (suggested)
+- Build a real LLM adapter (Anthropic Claude via API) to replace mock adapters
+- Control plane REST API for policy management and audit querying
+- Encrypted memory persistence (use CryptoProvider.encrypt for at-rest encryption)
+- Retention enforcement: scheduled expiration based on retentionPolicy field
+- Model registry with signature verification using CryptoProvider.verify
+- Consider tenant-scoped checkpoint/rollback as an alternative to store-wide
+
+---
+
 ## Iteration 3 (2026-03-16)
 
 ### What was built
