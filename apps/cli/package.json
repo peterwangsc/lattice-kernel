@@ -1,0 +1,27 @@
+{
+  "name": "@lattice-kernel/cli",
+  "version": "0.0.1",
+  "private": true,
+  "type": "module",
+  "bin": {
+    "lattice": "./dist/index.js"
+  },
+  "scripts": {
+    "start": "node dist/index.js",
+    "build": "tsc",
+    "typecheck": "tsc --noEmit",
+    "clean": "rm -rf dist *.tsbuildinfo",
+    "lint": "echo 'lint via root'",
+    "test": "echo 'no tests configured yet'"
+  },
+  "dependencies": {
+    "@lattice-kernel/sdk": "workspace:*",
+    "@lattice-kernel/schemas": "workspace:*",
+    "@lattice-kernel/runtime": "workspace:*",
+    "@lattice-kernel/adapter-cloud": "workspace:*"
+  },
+  "devDependencies": {
+    "@types/node": "^22.0.0",
+    "typescript": "^5.7.0"
+  }
+}
