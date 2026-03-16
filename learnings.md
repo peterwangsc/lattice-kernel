@@ -1,5 +1,36 @@
 # Learnings: Local Adaptive AI Runtime and Control Plane
 
+## Iteration 12 (2026-03-16)
+
+### What was built
+- **GitHub Actions CI**: Workflow runs on push/PR to main. Tests on Node 20 + 22. Steps: install, build, typecheck, lint, test
+- **RequestContext wiring**: `InferOptions.context` passes traceId/spanId through runtime. InferResult returns them for correlation. 2 new tests
+- **ESLint**: Flat config with typescript-eslint recommended rules. Zero errors across entire codebase. Added to CI pipeline
+- **CLAUDE.md update**: Comprehensive rewrite documenting all features from 12 iterations
+- **Total test count**: 230 unique tests across 7 packages
+
+### Architecture decisions made
+- **ESLint flat config over legacy .eslintrc**: Flat config is the future of ESLint and simpler for monorepos — single config file at root
+- **CI tests on Node 20 + 22**: Node 20 is LTS (production), Node 22 ensures forward compatibility. No Node 18 since we require >=20
+- **Context is optional, not required**: `InferOptions.context` is optional. When absent, the runtime generates its own requestId. This keeps the simple case simple while allowing full tracing when needed
+- **Lint covers all source, not per-package**: Root-level `eslint` glob is simpler than per-package lint scripts and ensures consistent rules
+
+### Technical notes
+- ESLint `argsIgnorePattern: "^_"` allows unused parameters prefixed with underscore — essential for adapter stubs and callbacks
+- `@typescript-eslint/no-non-null-assertion` is off because the codebase uses careful `!` assertions on known-present values
+- The CI uses `pnpm install --frozen-lockfile` to ensure reproducible installs
+- Root `package.json` needs `"type": "module"` for ESLint flat config (which is ESM)
+
+### What's next (suggested)
+- Persistent storage backends (SQLite for embedded, Postgres for cloud)
+- Control plane REST API using paginated audit queries
+- Agent orchestration: multi-agent coordination with shared context
+- Prettier for code formatting
+- Test coverage reporting in CI
+- OpenTelemetry SDK integration (attach context to real OTel traces)
+
+---
+
 ## Iteration 11 (2026-03-16)
 
 ### What was built
