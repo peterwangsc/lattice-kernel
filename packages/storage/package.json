@@ -1,0 +1,33 @@
+{
+  "name": "@lattice-kernel/storage",
+  "version": "0.0.1",
+  "private": true,
+  "type": "module",
+  "main": "./dist/index.js",
+  "types": "./dist/index.d.ts",
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "default": "./dist/index.js"
+    }
+  },
+  "scripts": {
+    "build": "tsc",
+    "typecheck": "tsc --noEmit",
+    "clean": "rm -rf dist *.tsbuildinfo",
+    "lint": "echo 'lint via root'",
+    "test": "vitest run"
+  },
+  "dependencies": {
+    "@lattice-kernel/schemas": "workspace:*",
+    "@lattice-kernel/audit": "workspace:*",
+    "@lattice-kernel/memory": "workspace:*",
+    "@lattice-kernel/policy-engine": "workspace:*",
+    "better-sqlite3": "^12.8.0"
+  },
+  "devDependencies": {
+    "@types/better-sqlite3": "^7.6.13",
+    "@types/node": "^22.0.0",
+    "typescript": "^5.7.0"
+  }
+}

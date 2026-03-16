@@ -1,0 +1,15 @@
+{
+  "extends": "../../tsconfig.base.json",
+  "compilerOptions": {
+    "outDir": "./dist",
+    "rootDir": "./src",
+    "types": ["node"]
+  },
+  "include": ["src"],
+  "references": [
+    { "path": "../schemas" },
+    { "path": "../audit" },
+    { "path": "../memory" },
+    { "path": "../policy-engine" }
+  ]
+}
