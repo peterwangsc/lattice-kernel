@@ -230,4 +230,38 @@ describe("Lattice SDK", () => {
       expect(status.mock).toBe(true);
     });
   });
+
+  describe("checkpoint and rollback", () => {
+    it("checkpoints and rolls back memory state", async () => {
+      const lattice = createLattice({
+        adapters: [createMockAdapter()],
+        policyRules: [ALLOW_ALL_RULE],
+      });
+
+      await lattice.remember("original fact");
+      const cp = await lattice.checkpoint("before experiment");
+
+      await lattice.remember("experimental fact");
+      let results = await lattice.retrieve("fact");
+      expect(results).toHaveLength(2);
+
+      await lattice.rollback(cp.checkpointId);
+      results = await lattice.retrieve("fact");
+      expect(results).toHaveLength(1);
+      expect(results[0]!.content).toBe("original fact");
+    });
+
+    it("lists checkpoints", async () => {
+      const lattice = createLattice({
+        adapters: [createMockAdapter()],
+        policyRules: [ALLOW_ALL_RULE],
+      });
+
+      await lattice.checkpoint("first");
+      await lattice.checkpoint("second");
+
+      const cps = lattice.listCheckpoints();
+      expect(cps).toHaveLength(2);
+    });
+  });
 });

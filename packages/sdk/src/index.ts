@@ -15,4 +15,5 @@ export type {
   PolicyRule,
   MemoryItem,
   MemoryType,
+  Checkpoint,
 } from "@lattice-kernel/schemas";

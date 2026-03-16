@@ -14,7 +14,7 @@ import { createMemoryAuditSink } from "@lattice-kernel/audit";
 import type { AuditSink } from "@lattice-kernel/audit";
 import { createMemoryStore } from "@lattice-kernel/memory";
 import type { MemoryStore, MemoryWriteInput } from "@lattice-kernel/memory";
-import type { MemoryItem } from "@lattice-kernel/schemas";
+import type { MemoryItem, Checkpoint } from "@lattice-kernel/schemas";
 
 export interface LatticeConfig {
   adapters: BackendAdapter[];
@@ -143,6 +143,18 @@ export class Lattice {
 
   removePolicyRule(ruleId: string): void {
     this.policyEngine.removeRule(ruleId);
+  }
+
+  async checkpoint(description?: string): Promise<Checkpoint> {
+    return this.memoryStore.checkpoint(description);
+  }
+
+  async rollback(checkpointId: string): Promise<void> {
+    return this.memoryStore.rollback(checkpointId);
+  }
+
+  listCheckpoints(): Checkpoint[] {
+    return this.memoryStore.listCheckpoints();
   }
 }
 
