@@ -1,5 +1,34 @@
 # Learnings: Local Adaptive AI Runtime and Control Plane
 
+## Iteration 24 (2026-03-16)
+
+### What was built
+- **Docker Compose**: Ready-to-use config with health check, named volume, env var passthrough. `docker compose up -d` for instant deployment
+- **Embedding memory store**: `createEmbeddingMemoryStore` wrapper that generates embeddings at write time and re-ranks retrieval by cosine similarity. Non-fatal embedding failure. 6 tests
+- **Total**: 335 tests across 11 packages, 95 commits
+
+### Memory store decorator stack
+The memory system now has three composable decorators:
+1. **Base**: `createMemoryStore` (in-memory) or `createSqliteMemoryStore` (persistent)
+2. **Encryption**: `createEncryptedMemoryStore(base, crypto)` — AES-256-GCM at rest
+3. **Embeddings**: `createEmbeddingMemoryStore(base, embedFn)` — vector similarity ranking
+
+These compose: `createEmbeddingMemoryStore(createEncryptedMemoryStore(base, crypto), embed)` gives encrypted storage with embedding-based retrieval.
+
+### Architecture decisions made
+- **EmbedFunction is a simple callback**: `(content: string) => Promise<number[]>`. Not tied to any specific adapter — can use OpenAI, Anthropic (if they add it), or a local model. This keeps the memory package adapter-agnostic
+- **Embedding failure is non-fatal**: If the embed function throws, the item is still written to the store. Retrieval falls back to text scoring. This prevents embedding service downtime from blocking memory writes
+- **Embeddings stored in-memory index**: Not in the underlying store. This means embeddings don't survive restarts unless the embedding store wrapper is rebuilt. A production system would want to persist embeddings in SQLite
+
+### What's next (if continued)
+- Persist embeddings in SQLite alongside memory items
+- Multi-runtime agent coordination
+- WebSocket support for real-time audit streaming
+- Rate limiting middleware for control plane
+- E2E test with real LLM API (integration test with Anthropic/OpenAI)
+
+---
+
 ## Iteration 23 (2026-03-16)
 
 ### What was built
