@@ -29,6 +29,15 @@ export function createRuntime(config: RuntimeConfig): Runtime {
   const { adapters, policyEngine, auditSink, tools = [] } = config;
   const toolMap = new Map(tools.map((t) => [t.toolId, t]));
 
+  // Safe audit emit — never lets audit failures crash operations
+  async function safeEmit(...args: Parameters<typeof auditSink.emit>): Promise<void> {
+    try {
+      await auditSink.emit(...args);
+    } catch {
+      // Audit failure is non-fatal — the operation should still proceed
+    }
+  }
+
   // Model registry for model-aware routing
   const registry: ModelRegistry = createModelRegistry(adapters);
   let registryInitialized = false;
@@ -112,7 +121,7 @@ export function createRuntime(config: RuntimeConfig): Runtime {
         yield chunk;
       }
     } finally {
-      await auditSink.emit({
+      await safeEmit({
         eventId: `evt_${requestId}`,
         type: "infer",
         requestId,
@@ -145,7 +154,7 @@ export function createRuntime(config: RuntimeConfig): Runtime {
       });
 
       if (!policyDecision.allowed) {
-        await auditSink.emit({
+        await safeEmit({
           eventId: `evt_${requestId}`,
           type: "infer",
           requestId,
@@ -191,7 +200,7 @@ export function createRuntime(config: RuntimeConfig): Runtime {
       const durationMs = Date.now() - startMs;
 
       // Audit
-      await auditSink.emit({
+      await safeEmit({
         eventId: `evt_${requestId}`,
         type: "infer",
         requestId,
@@ -230,7 +239,7 @@ export function createRuntime(config: RuntimeConfig): Runtime {
       });
 
       if (!policyDecision.allowed) {
-        await auditSink.emit({
+        await safeEmit({
           eventId: `evt_${requestId}`,
           type: "infer",
           requestId,
@@ -300,7 +309,7 @@ export function createRuntime(config: RuntimeConfig): Runtime {
         yield { type: "done" };
       }
 
-      await auditSink.emit({
+      await safeEmit({
         eventId: `evt_${requestId}`,
         type: "infer",
         requestId,
@@ -341,7 +350,7 @@ export function createRuntime(config: RuntimeConfig): Runtime {
 
       const durationMs = Date.now() - startMs;
 
-      await auditSink.emit({
+      await safeEmit({
         eventId: `evt_${requestId}`,
         type: "embed",
         requestId,
@@ -376,7 +385,7 @@ export function createRuntime(config: RuntimeConfig): Runtime {
       });
 
       if (!policyDecision.allowed) {
-        await auditSink.emit({
+        await safeEmit({
           eventId: `evt_${requestId}`,
           type: "plan",
           requestId,
@@ -410,7 +419,7 @@ export function createRuntime(config: RuntimeConfig): Runtime {
         status: "draft",
       };
 
-      await auditSink.emit({
+      await safeEmit({
         eventId: `evt_${requestId}`,
         type: "plan",
         requestId,
@@ -436,7 +445,7 @@ export function createRuntime(config: RuntimeConfig): Runtime {
       });
 
       if (!policyDecision.allowed) {
-        await auditSink.emit({
+        await safeEmit({
           eventId: `evt_${requestId}`,
           type: "act",
           requestId,
@@ -451,7 +460,7 @@ export function createRuntime(config: RuntimeConfig): Runtime {
       }
 
       if (policyDecision.requiresApproval) {
-        await auditSink.emit({
+        await safeEmit({
           eventId: `evt_${requestId}`,
           type: "act",
           requestId,
@@ -486,7 +495,7 @@ export function createRuntime(config: RuntimeConfig): Runtime {
         timestamp: new Date().toISOString(),
       };
 
-      await auditSink.emit({
+      await safeEmit({
         eventId: `evt_${requestId}`,
         type: "act",
         requestId,

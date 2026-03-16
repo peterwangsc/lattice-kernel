@@ -117,6 +117,26 @@ describe("Runtime", () => {
       expect(result.traceId).toBeUndefined();
     });
 
+    it("succeeds even when audit sink throws", async () => {
+      const brokenAudit = {
+        async emit() { throw new Error("audit service down"); },
+        async query() { return { events: [], total: 0, hasMore: false, offset: 0, limit: 0 }; },
+      };
+      const policyEngine = createPolicyEngine({ defaultDeny: false });
+      const rt = createRuntime({
+        adapters: [createMockAdapter({ providerId: "test" })],
+        policyEngine,
+        auditSink: brokenAudit,
+      });
+
+      // Should not throw despite audit failure
+      const result = await rt.infer({
+        input: "test",
+        trustLevel: "trusted_user_explicit",
+      });
+      expect(result.output).toBeTruthy();
+    });
+
     it("emits audit event on successful infer", async () => {
       await runtime.infer({
         input: "test",
