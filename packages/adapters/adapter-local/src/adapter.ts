@@ -1,3 +1,4 @@
+import { AdapterError } from "@lattice-kernel/schemas";
 import type {
   BackendCapabilities,
   InferRequest,
@@ -27,11 +28,11 @@ export function createLocalAdapter(_config: LocalAdapterConfig = {}): LocalAdapt
     },
 
     async infer(_request: InferRequest): Promise<InferResponse> {
-      throw new Error("Local inference not yet implemented");
+      throw new AdapterError("local", "Local inference not yet implemented");
     },
 
     async embed(_request: EmbedRequest): Promise<EmbedResponse> {
-      throw new Error("Local embedding not yet implemented");
+      throw new AdapterError("local", "Local embedding not yet implemented");
     },
 
     async estimate(_request: InferRequest): Promise<CostEstimate> {

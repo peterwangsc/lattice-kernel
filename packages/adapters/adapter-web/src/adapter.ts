@@ -1,3 +1,4 @@
+import { AdapterError } from "@lattice-kernel/schemas";
 import type {
   BackendCapabilities,
   InferRequest,
@@ -27,11 +28,11 @@ export function createWebAdapter(_config: WebAdapterConfig = {}): WebAdapter {
     },
 
     async infer(_request: InferRequest): Promise<InferResponse> {
-      throw new Error("Web inference not yet implemented");
+      throw new AdapterError("web", "Web inference not yet implemented");
     },
 
     async embed(_request: EmbedRequest): Promise<EmbedResponse> {
-      throw new Error("Web embedding not yet implemented");
+      throw new AdapterError("web", "Web embedding not yet implemented");
     },
 
     async estimate(_request: InferRequest): Promise<CostEstimate> {

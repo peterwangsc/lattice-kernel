@@ -1,3 +1,4 @@
+import { NoAdaptersError } from "@lattice-kernel/schemas";
 import type {
   BackendAdapter,
   BackendCapabilities,
@@ -31,7 +32,7 @@ export function createCompositeAdapter(
   const providerId = config.providerId ?? "composite";
 
   if (adapters.length === 0) {
-    throw new Error("CompositeAdapter requires at least one adapter");
+    throw new NoAdaptersError();
   }
 
   async function selectHealthy(): Promise<BackendAdapter> {

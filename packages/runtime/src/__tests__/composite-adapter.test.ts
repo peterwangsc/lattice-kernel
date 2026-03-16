@@ -40,7 +40,7 @@ function createMockAdapter(
 describe("CompositeAdapter", () => {
   it("throws if no adapters provided", () => {
     expect(() => createCompositeAdapter({ adapters: [] })).toThrow(
-      "at least one",
+      "No adapters",
     );
   });
 
