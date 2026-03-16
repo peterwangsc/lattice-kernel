@@ -6,6 +6,7 @@ import { registerHealthRoutes } from "../routes/health.js";
 import { registerPolicyRoutes } from "../routes/policies.js";
 import { registerAuditRoutes } from "../routes/audit.js";
 import { registerMetricsRoutes } from "../routes/metrics.js";
+import { registerOpenApiRoutes } from "../routes/openapi.js";
 import { createPolicyEngine } from "@lattice-kernel/policy-engine";
 import { createMemoryAuditSink } from "@lattice-kernel/audit";
 import type { IncomingMessage, ServerResponse } from "node:http";
@@ -350,6 +351,24 @@ describe("Control Plane Routes", () => {
       const system = body.system as Record<string, unknown>;
       expect(system.nodeVersion).toBeTruthy();
       expect(system.uptime).toBeGreaterThan(0);
+    });
+  });
+
+  describe("openapi", () => {
+    it("returns OpenAPI 3.0 spec", async () => {
+      const router = createRouter();
+      registerOpenApiRoutes(router);
+
+      const req = mockReq("GET", "/api/v1/openapi.json");
+      const res = mockRes();
+      await router.handle(req, res);
+
+      expect(res.statusCode).toBe(200);
+      const body = parseBody(res) as Record<string, unknown>;
+      expect(body.openapi).toBe("3.0.3");
+      expect(body.info).toBeDefined();
+      expect(body.paths).toBeDefined();
+      expect(body.components).toBeDefined();
     });
   });
 });

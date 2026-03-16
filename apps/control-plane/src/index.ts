@@ -11,6 +11,7 @@ import { registerHealthRoutes } from "./routes/health.js";
 import { registerPolicyRoutes } from "./routes/policies.js";
 import { registerAuditRoutes } from "./routes/audit.js";
 import { registerMetricsRoutes } from "./routes/metrics.js";
+import { registerOpenApiRoutes } from "./routes/openapi.js";
 import { cors } from "./middleware/cors.js";
 import { apiKeyAuth } from "./middleware/auth.js";
 import { createPolicyEngine } from "@lattice-kernel/policy-engine";
@@ -41,6 +42,7 @@ registerHealthRoutes(router);
 registerPolicyRoutes(router, policyEngine, policyStore);
 registerAuditRoutes(router, auditSink);
 registerMetricsRoutes(router, policyEngine, auditSink);
+registerOpenApiRoutes(router);
 
 // Middleware
 const applyCors = cors();
@@ -73,6 +75,7 @@ server.listen(PORT, () => {
   console.log("  DELETE /api/v1/policies/:ruleId");
   console.log("  GET    /api/v1/audit?type=infer&limit=10&offset=0");
   console.log("  GET    /api/v1/metrics");
+  console.log("  GET    /api/v1/openapi.json");
 });
 
 export { router, policyEngine, policyStore, auditSink };
