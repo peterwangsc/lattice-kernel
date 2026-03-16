@@ -15,11 +15,20 @@
     "build": "tsc",
     "typecheck": "tsc --noEmit",
     "clean": "rm -rf dist *.tsbuildinfo",
-    "lint": "echo 'no linter configured yet'",
-    "test": "echo 'no tests configured yet'"
+    "lint": "echo 'lint via root'",
+    "test": "vitest run",
+    "bench": "node dist/bench/run.js"
   },
-  "dependencies": {},
+  "dependencies": {
+    "@lattice-kernel/schemas": "workspace:*",
+    "@lattice-kernel/runtime": "workspace:*",
+    "@lattice-kernel/policy-engine": "workspace:*",
+    "@lattice-kernel/audit": "workspace:*",
+    "@lattice-kernel/memory": "workspace:*",
+    "@lattice-kernel/crypto": "workspace:*"
+  },
   "devDependencies": {
+    "@types/node": "^22.0.0",
     "typescript": "^5.7.0"
   }
 }
