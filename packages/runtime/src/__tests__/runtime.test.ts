@@ -2,7 +2,7 @@ import { describe, it, expect, beforeEach } from "vitest";
 import { createRuntime } from "../runtime.js";
 import { createPolicyEngine } from "@lattice-kernel/policy-engine";
 import { createMemoryAuditSink } from "@lattice-kernel/audit";
-import type { BackendAdapter, PolicyRule } from "@lattice-kernel/schemas";
+import type { BackendAdapter, PolicyRule, InferStreamChunk } from "@lattice-kernel/schemas";
 import type { Runtime, ToolAdapter } from "../types.js";
 
 function createMockAdapter(
@@ -549,6 +549,100 @@ describe("Runtime", () => {
       });
 
       expect(result.action.planRef).toBe("plan_123");
+    });
+  });
+
+  describe("inferStream", () => {
+    it("streams response as chunks (fallback from non-streaming adapter)", async () => {
+      const result = await runtime.inferStream({
+        input: "hello",
+        trustLevel: "trusted_user_explicit",
+      });
+
+      expect(result.requestId).toBeTruthy();
+      expect(result.route).toBe("test-local");
+
+      const chunks: InferStreamChunk[] = [];
+      for await (const chunk of result.stream) {
+        chunks.push(chunk);
+      }
+
+      expect(chunks.length).toBeGreaterThanOrEqual(2);
+      expect(chunks.some((c) => c.type === "text_delta")).toBe(true);
+      expect(chunks.some((c) => c.type === "done")).toBe(true);
+
+      const textChunk = chunks.find((c) => c.type === "text_delta");
+      expect(textChunk!.text).toContain("hello");
+    });
+
+    it("uses native streaming when adapter supports it", async () => {
+      const streamingAdapter = createMockAdapter({
+        providerId: "streaming",
+        async *inferStream(request) {
+          yield { type: "text_delta" as const, text: "Hello " };
+          yield { type: "text_delta" as const, text: "World" };
+          yield {
+            type: "usage" as const,
+            tokensUsed: 5,
+            modelId: request.modelId,
+          };
+          yield { type: "done" as const };
+        },
+      });
+
+      const policyEngine = createPolicyEngine({ defaultDeny: false });
+      const rt = createRuntime({
+        adapters: [streamingAdapter],
+        policyEngine,
+        auditSink,
+      });
+
+      const result = await rt.inferStream({
+        input: "test",
+        trustLevel: "trusted_user_explicit",
+      });
+
+      const chunks: InferStreamChunk[] = [];
+      for await (const chunk of result.stream) {
+        chunks.push(chunk);
+      }
+
+      expect(chunks).toHaveLength(4);
+      expect(chunks[0]!.text).toBe("Hello ");
+      expect(chunks[1]!.text).toBe("World");
+      expect(chunks[2]!.tokensUsed).toBe(5);
+      expect(chunks[3]!.type).toBe("done");
+    });
+
+    it("emits audit event after streaming completes", async () => {
+      const result = await runtime.inferStream({
+        input: "test",
+        trustLevel: "trusted_user_explicit",
+      });
+
+      // Consume the stream
+      for await (const _chunk of result.stream) {
+        // drain
+      }
+
+      const events = await auditSink.query({ type: "infer" });
+      expect(events.length).toBeGreaterThan(0);
+    });
+
+    it("throws when policy denies streaming", async () => {
+      const policyEngine = createPolicyEngine({ defaultDeny: true });
+      const deniedRuntime = createRuntime({
+        adapters: [createMockAdapter({ providerId: "test" })],
+        policyEngine,
+        auditSink,
+      });
+
+      await expect(
+        deniedRuntime.inferStream({
+          input: "test",
+          trustLevel: "trusted_user_explicit",
+        }),
+      ).rejects.toThrow("Policy denied");
     });
   });
 });

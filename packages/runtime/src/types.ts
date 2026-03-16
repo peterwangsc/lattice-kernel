@@ -9,6 +9,7 @@ import type {
   Plan,
   PlanStep,
   Action,
+  InferStreamChunk,
 } from "@lattice-kernel/schemas";
 import type { PolicyEngine } from "@lattice-kernel/policy-engine";
 import type { AuditSink } from "@lattice-kernel/audit";
@@ -81,8 +82,16 @@ export interface ActResult {
   policyDecision: PolicyDecision;
 }
 
+export interface InferStreamResult {
+  requestId: string;
+  stream: AsyncIterable<InferStreamChunk>;
+  route: string;
+  policyDecision: PolicyDecision;
+}
+
 export interface Runtime {
   infer(options: InferOptions): Promise<InferResult>;
+  inferStream(options: InferOptions): Promise<InferStreamResult>;
   embed(options: EmbedOptions): Promise<EmbedResult>;
   plan(options: PlanOptions): Promise<Plan>;
   act(options: ActOptions): Promise<ActResult>;

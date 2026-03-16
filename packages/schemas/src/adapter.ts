@@ -5,6 +5,7 @@ export const BackendCapabilities = z.object({
   supportsLocalExecution: z.boolean(),
   supportsCloudExecution: z.boolean(),
   supportsAdaptation: z.boolean(),
+  supportsStreaming: z.boolean().optional(),
   supportedFormats: z.array(z.string()),
   modelCapabilities: ModelCapabilities.optional(),
 });
@@ -48,6 +49,14 @@ export const CostEstimate = z.object({
 });
 export type CostEstimate = z.infer<typeof CostEstimate>;
 
+export const InferStreamChunk = z.object({
+  type: z.enum(["text_delta", "usage", "done"]),
+  text: z.string().optional(),
+  tokensUsed: z.number().optional(),
+  modelId: z.string().optional(),
+});
+export type InferStreamChunk = z.infer<typeof InferStreamChunk>;
+
 /**
  * The contract every backend adapter must implement.
  * See program.md section 15.1.
@@ -57,6 +66,7 @@ export interface BackendAdapter {
   getCapabilities(): Promise<BackendCapabilities>;
   listModels(): Promise<import("./model.js").ModelDescriptor[]>;
   infer(request: InferRequest): Promise<InferResponse>;
+  inferStream?(request: InferRequest): AsyncIterable<InferStreamChunk>;
   embed(request: EmbedRequest): Promise<EmbedResponse>;
   estimate(request: InferRequest): Promise<CostEstimate>;
   healthCheck(): Promise<boolean>;

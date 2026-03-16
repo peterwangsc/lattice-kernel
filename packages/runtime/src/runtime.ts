@@ -3,13 +3,14 @@ import type {
   Runtime,
   InferOptions,
   InferResult,
+  InferStreamResult,
   EmbedOptions,
   EmbedResult,
   PlanOptions,
   ActOptions,
   ActResult,
 } from "./types.js";
-import type { BackendAdapter, Plan } from "@lattice-kernel/schemas";
+import type { BackendAdapter, Plan, InferStreamChunk } from "@lattice-kernel/schemas";
 import { createModelRegistry } from "./model-registry.js";
 import type { ModelRegistry } from "./model-registry.js";
 
@@ -68,6 +69,40 @@ export function createRuntime(config: RuntimeConfig): Runtime {
     }
 
     return adapters[0]!;
+  }
+
+  async function* wrapStreamWithAudit(
+    stream: AsyncIterable<InferStreamChunk>,
+    requestId: string,
+    options: InferOptions,
+    route: string,
+    matchedRules: string[],
+  ): AsyncIterable<InferStreamChunk> {
+    const startMs = Date.now();
+    let modelId: string | undefined;
+
+    try {
+      for await (const chunk of stream) {
+        if (chunk.modelId) {
+          modelId = chunk.modelId;
+        }
+        yield chunk;
+      }
+    } finally {
+      await auditSink.emit({
+        eventId: `evt_${requestId}`,
+        type: "infer",
+        requestId,
+        scope: options.memoryScope ?? {},
+        trustLevel: options.trustLevel,
+        timestamp: new Date().toISOString(),
+        actor: "runtime",
+        modelId: modelId ?? options.model,
+        route,
+        policyDecisions: matchedRules,
+        durationMs: Date.now() - startMs,
+      });
+    }
   }
 
   return {
@@ -143,6 +178,97 @@ export function createRuntime(config: RuntimeConfig): Runtime {
         policyDecision,
         adapterResponse,
       };
+    },
+
+    async inferStream(options: InferOptions): Promise<InferStreamResult> {
+      const requestId = nextRequestId();
+
+      // Policy check (same as non-streaming)
+      const policyDecision = policyEngine.evaluate({
+        operation: "canInfer",
+        scope: options.memoryScope ?? {},
+        modelId: options.model,
+        trustLevel: options.trustLevel,
+      });
+
+      if (!policyDecision.allowed) {
+        await auditSink.emit({
+          eventId: `evt_${requestId}`,
+          type: "infer",
+          requestId,
+          scope: options.memoryScope ?? {},
+          trustLevel: options.trustLevel,
+          timestamp: new Date().toISOString(),
+          actor: "runtime",
+          modelId: options.model,
+          policyDecisions: policyDecision.matchedRules,
+          error: policyDecision.reason ?? "Policy denied",
+        });
+        throw new Error(
+          `Policy denied infer: ${policyDecision.reason ?? "no reason given"}`,
+        );
+      }
+
+      const adapter = await selectAdapter(
+        options.executionPreference,
+        options.model,
+      );
+      const route = adapter.providerId;
+
+      // If adapter supports streaming, use it
+      if (adapter.inferStream) {
+        const adapterStream = adapter.inferStream({
+          modelId: options.model ?? "default",
+          input: options.input,
+          maxTokens: options.maxTokens,
+          temperature: options.temperature,
+        });
+
+        // Wrap the stream to emit audit on completion
+        const wrappedStream = wrapStreamWithAudit(
+          adapterStream,
+          requestId,
+          options,
+          route,
+          policyDecision.matchedRules,
+        );
+
+        return { requestId, stream: wrappedStream, route, policyDecision };
+      }
+
+      // Fallback: use non-streaming infer and emit chunks
+      const response = await adapter.infer({
+        modelId: options.model ?? "default",
+        input: options.input,
+        maxTokens: options.maxTokens,
+        temperature: options.temperature,
+      });
+
+      async function* fallbackStream(): AsyncIterable<InferStreamChunk> {
+        yield { type: "text_delta", text: response.output };
+        yield {
+          type: "usage",
+          tokensUsed: response.tokensUsed,
+          modelId: response.modelId,
+        };
+        yield { type: "done" };
+      }
+
+      await auditSink.emit({
+        eventId: `evt_${requestId}`,
+        type: "infer",
+        requestId,
+        scope: options.memoryScope ?? {},
+        trustLevel: options.trustLevel,
+        timestamp: new Date().toISOString(),
+        actor: "runtime",
+        modelId: response.modelId,
+        route,
+        policyDecisions: policyDecision.matchedRules,
+        durationMs: response.durationMs,
+      });
+
+      return { requestId, stream: fallbackStream(), route, policyDecision };
     },
 
     async embed(options: EmbedOptions): Promise<EmbedResult> {

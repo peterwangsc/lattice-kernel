@@ -9,6 +9,7 @@ export type {
   ToolAdapter,
   InferOptions,
   InferResult,
+  InferStreamResult,
   EmbedOptions,
   EmbedResult,
   PlanOptions,
