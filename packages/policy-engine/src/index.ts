@@ -1,2 +1,3 @@
+export type { PolicyEngine, PolicyEvaluationContext } from "./types.js";
 export { createPolicyEngine } from "./engine.js";
-export type { PolicyEngine } from "./types.js";
+export type { PolicyEngineOptions } from "./engine.js";
