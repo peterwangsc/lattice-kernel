@@ -1,5 +1,26 @@
 # Learnings: Local Adaptive AI Runtime and Control Plane
 
+## Iteration 43 (2026-03-16)
+
+### What was built
+- **7 per-package READMEs** (spec 20.3): schemas, policy-engine, audit, memory, runtime, sdk, storage. Each covers purpose, key exports, usage example, invariants, and failure modes
+- **Total**: 403 tests, 149 commits
+
+### Documentation is now complete at every level
+| Level | Document | Purpose |
+|-------|----------|---------|
+| Project | README.md | Overview, quick start, architecture |
+| AI assistant | CLAUDE.md | Build commands, package structure, capabilities |
+| Specification | program.md | Founding design spec |
+| History | learnings.md | 43 iterations of development |
+| Architecture | docs/adr/*.md | 10 decision records |
+| API | /api/v1/openapi.json | Machine-readable spec |
+| Packages | packages/*/README.md | Purpose, exports, invariants |
+| Examples | examples/*.ts | 3 runnable examples |
+| Config | .env.example | Environment variables |
+
+---
+
 ## Iteration 42 (2026-03-16)
 
 ### What was built
