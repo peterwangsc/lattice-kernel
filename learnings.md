@@ -1,5 +1,20 @@
 # Learnings: Local Adaptive AI Runtime and Control Plane
 
+## Iteration 42 (2026-03-16)
+
+### What was built
+- **Policy decision explanation** (spec 19.2): `explainPolicyDecision` returns human-readable reasoning — which rules matched, why denied/allowed, context details. Exported from SDK. 5 tests
+- **Total**: 403 tests, 146 commits
+
+### Debuggability per spec 19.2
+An engineer can now answer:
+- "Why was this denied?" → `explainPolicyDecision` shows matched deny rules and default-deny
+- "Why was this allowed?" → Shows which allow rules matched
+- "Why does this need approval?" → Shows require_approval rules
+- "What context was evaluated?" → Shows scope, trust level, model, tool
+
+---
+
 ## Iteration 41 (2026-03-16)
 
 ### What was built
