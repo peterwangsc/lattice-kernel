@@ -34,9 +34,16 @@ function simpleHash(content: string): string {
  * 7. persist → 8. emit audit event
  */
 export function createMemoryStore(config: MemoryStoreConfig): MemoryStore {
-  const { policyEngine, auditSink, maxItems = 100_000 } = config;
+  const { policyEngine, auditSink, crypto, maxItems = 100_000 } = config;
   const items = new Map<string, MemoryItem>();
   const checkpoints = new Map<string, { snapshot: Map<string, MemoryItem>; meta: Checkpoint }>();
+
+  async function computeHash(content: string): Promise<string> {
+    if (crypto) {
+      return crypto.hashString(content);
+    }
+    return simpleHash(content);
+  }
 
   return {
     async write(input: MemoryWriteInput): Promise<MemoryItem> {
@@ -83,7 +90,7 @@ export function createMemoryStore(config: MemoryStoreConfig): MemoryStore {
       // Steps 6-7: Generate hash and persist
       const id = `mem_${Date.now()}_${++idCounter}`;
       const now = new Date().toISOString();
-      const hash = simpleHash(input.content + id);
+      const hash = await computeHash(input.content + id);
 
       const item: MemoryItem = {
         id,
@@ -236,7 +243,7 @@ export function createMemoryStore(config: MemoryStoreConfig): MemoryStore {
       }
 
       // Hash the snapshot content for integrity
-      const contentHash = simpleHash(
+      const contentHash = await computeHash(
         [...snapshot.values()].map((i) => i.hash).join(",") + cpId,
       );
 

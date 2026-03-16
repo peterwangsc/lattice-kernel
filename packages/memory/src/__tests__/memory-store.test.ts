@@ -2,6 +2,7 @@ import { describe, it, expect, beforeEach } from "vitest";
 import { createMemoryStore } from "../memory-store.js";
 import { createPolicyEngine } from "@lattice-kernel/policy-engine";
 import { createMemoryAuditSink } from "@lattice-kernel/audit";
+import { createNodeCryptoProvider } from "@lattice-kernel/crypto";
 import type { MemoryStore, MemoryWriteInput } from "../types.js";
 
 function makeInput(overrides: Partial<MemoryWriteInput> = {}): MemoryWriteInput {
@@ -43,6 +44,23 @@ describe("MemoryStore", () => {
       await expect(restrictedStore.write(makeInput())).rejects.toThrow(
         "Policy denied",
       );
+    });
+
+    it("uses SHA-256 hash when crypto provider is supplied", async () => {
+      const policyEngine = createPolicyEngine({ defaultDeny: false });
+      const auditSink = createMemoryAuditSink();
+      const crypto = createNodeCryptoProvider();
+      const cryptoStore = createMemoryStore({ policyEngine, auditSink, crypto });
+
+      const item = await cryptoStore.write(makeInput());
+      // SHA-256 hex is 64 characters
+      expect(item.hash).toHaveLength(64);
+    });
+
+    it("uses simple hash when no crypto provider", async () => {
+      const item = await store.write(makeInput());
+      // simpleHash is 8 characters
+      expect(item.hash.length).toBeLessThan(64);
     });
   });
 

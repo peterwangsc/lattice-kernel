@@ -1,6 +1,7 @@
 import type { MemoryItem, MemoryType, ScopeRef, TrustLevel, Checkpoint } from "@lattice-kernel/schemas";
 import type { PolicyEngine } from "@lattice-kernel/policy-engine";
 import type { AuditSink } from "@lattice-kernel/audit";
+import type { CryptoProvider } from "@lattice-kernel/crypto";
 
 export interface MemoryStore {
   write(input: MemoryWriteInput): Promise<MemoryItem>;
@@ -37,5 +38,6 @@ export interface RetrieveOptions {
 export interface MemoryStoreConfig {
   policyEngine: PolicyEngine;
   auditSink: AuditSink;
+  crypto?: CryptoProvider;
   maxItems?: number;
 }

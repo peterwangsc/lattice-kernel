@@ -8,6 +8,7 @@
   "references": [
     { "path": "../schemas" },
     { "path": "../policy-engine" },
-    { "path": "../audit" }
+    { "path": "../audit" },
+    { "path": "../crypto" }
   ]
 }
