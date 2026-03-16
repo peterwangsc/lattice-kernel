@@ -1,5 +1,6 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from "vitest";
 import { createAnthropicAdapter } from "../anthropic.js";
+import type { InferStreamChunk } from "@lattice-kernel/schemas";
 
 const MOCK_RESPONSE = {
   id: "msg_123",
@@ -184,6 +185,78 @@ describe("AnthropicAdapter", () => {
       mockFetchError(401, "unauthorized");
       const adapter = createAnthropicAdapter({ apiKey: "bad-key" });
       expect(await adapter.healthCheck()).toBe(false);
+    });
+  });
+
+  describe("inferStream", () => {
+    function mockSSEResponse(events: string[]) {
+      const sseText = events.join("\n") + "\n";
+      const encoder = new TextEncoder();
+
+      const stream = new ReadableStream({
+        start(controller) {
+          controller.enqueue(encoder.encode(sseText));
+          controller.close();
+        },
+      });
+
+      (globalThis.fetch as ReturnType<typeof vi.fn>).mockResolvedValue({
+        ok: true,
+        body: stream,
+      });
+    }
+
+    it("streams text deltas from SSE events", async () => {
+      mockSSEResponse([
+        'data: {"type":"content_block_delta","delta":{"type":"text_delta","text":"Hello "}}',
+        'data: {"type":"content_block_delta","delta":{"type":"text_delta","text":"World"}}',
+        'data: {"type":"message_delta","usage":{"output_tokens":5}}',
+        'data: {"type":"message_stop"}',
+      ]);
+
+      const adapter = createAnthropicAdapter({ apiKey: "test-key" });
+      const chunks: InferStreamChunk[] = [];
+
+      for await (const chunk of adapter.inferStream!({
+        modelId: "claude-sonnet-4-6",
+        input: "test",
+      })) {
+        chunks.push(chunk);
+      }
+
+      expect(chunks).toHaveLength(4);
+      expect(chunks[0]).toEqual({ type: "text_delta", text: "Hello " });
+      expect(chunks[1]).toEqual({ type: "text_delta", text: "World" });
+      expect(chunks[2]!.type).toBe("usage");
+      expect(chunks[2]!.tokensUsed).toBe(5);
+      expect(chunks[3]!.type).toBe("done");
+    });
+
+    it("sends stream: true in request body", async () => {
+      mockSSEResponse([
+        'data: {"type":"message_stop"}',
+      ]);
+
+      const adapter = createAnthropicAdapter({ apiKey: "test-key" });
+      // Consume the stream
+      for await (const _chunk of adapter.inferStream!({
+        modelId: "claude-sonnet-4-6",
+        input: "test",
+      })) {
+        // drain
+      }
+
+      const body = JSON.parse(
+        (globalThis.fetch as ReturnType<typeof vi.fn>).mock.calls[0]![1]
+          .body as string,
+      );
+      expect(body.stream).toBe(true);
+    });
+
+    it("reports supportsStreaming in capabilities", async () => {
+      const adapter = createAnthropicAdapter({ apiKey: "test-key" });
+      const caps = await adapter.getCapabilities();
+      expect(caps.supportsStreaming).toBe(true);
     });
   });
 });

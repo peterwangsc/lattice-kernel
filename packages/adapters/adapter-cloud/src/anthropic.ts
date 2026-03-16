@@ -2,6 +2,7 @@ import type {
   BackendCapabilities,
   InferRequest,
   InferResponse,
+  InferStreamChunk,
   EmbedRequest,
   EmbedResponse,
   CostEstimate,
@@ -101,6 +102,7 @@ export function createAnthropicAdapter(
         supportsLocalExecution: false,
         supportsCloudExecution: true,
         supportsAdaptation: false,
+        supportsStreaming: true,
         supportedFormats: ["api"],
       };
     },
@@ -141,6 +143,96 @@ export function createAnthropicAdapter(
         tokensUsed: result.usage.input_tokens + result.usage.output_tokens,
         durationMs: Date.now() - startMs,
       };
+    },
+
+    async *inferStream(request: InferRequest): AsyncIterable<InferStreamChunk> {
+      const model =
+        request.modelId === "default" ? defaultModel : request.modelId;
+
+      const body: Record<string, unknown> = {
+        model,
+        max_tokens: request.maxTokens ?? 1024,
+        messages: [{ role: "user", content: request.input }],
+        stream: true,
+      };
+
+      if (request.temperature !== undefined) {
+        body.temperature = request.temperature;
+      }
+
+      const url = `${baseUrl}/v1/messages`;
+      const response = await fetch(url, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          "x-api-key": config.apiKey,
+          "anthropic-version": API_VERSION,
+        },
+        body: JSON.stringify(body),
+      });
+
+      if (!response.ok) {
+        const errorBody = await response.text();
+        throw new Error(
+          `Anthropic API error (${response.status}): ${errorBody}`,
+        );
+      }
+
+      if (!response.body) {
+        throw new Error("No response body for streaming");
+      }
+
+      const reader = response.body.getReader();
+      const decoder = new TextDecoder();
+      let buffer = "";
+      let totalTokens = 0;
+
+      try {
+        while (true) {
+          const { done, value } = await reader.read();
+          if (done) break;
+
+          buffer += decoder.decode(value, { stream: true });
+          const lines = buffer.split("\n");
+          buffer = lines.pop() ?? "";
+
+          for (const line of lines) {
+            if (!line.startsWith("data: ")) continue;
+            const data = line.slice(6).trim();
+            if (data === "[DONE]") continue;
+
+            try {
+              const event = JSON.parse(data) as Record<string, unknown>;
+              const eventType = event.type as string;
+
+              if (eventType === "content_block_delta") {
+                const delta = event.delta as { type: string; text?: string };
+                if (delta.type === "text_delta" && delta.text) {
+                  yield { type: "text_delta", text: delta.text };
+                }
+              } else if (eventType === "message_delta") {
+                const usage = event.usage as
+                  | { output_tokens: number }
+                  | undefined;
+                if (usage) {
+                  totalTokens += usage.output_tokens;
+                }
+              } else if (eventType === "message_stop") {
+                yield {
+                  type: "usage",
+                  tokensUsed: totalTokens,
+                  modelId: model,
+                };
+                yield { type: "done" };
+              }
+            } catch {
+              // Skip malformed JSON lines
+            }
+          }
+        }
+      } finally {
+        reader.releaseLock();
+      }
     },
 
     async embed(_request: EmbedRequest): Promise<EmbedResponse> {
