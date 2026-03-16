@@ -1,5 +1,13 @@
 # Learnings: Local Adaptive AI Runtime and Control Plane
 
+## Iteration 35 (2026-03-16)
+
+### What was built
+- **Control plane memory endpoint tests**: 5 tests for stats, retrieve, get, 404, delete. Control plane now has 30 tests
+- **Total**: 385 tests, 128 commits
+
+---
+
 ## Iteration 34 (2026-03-16)
 
 ### What was built
