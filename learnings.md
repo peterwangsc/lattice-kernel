@@ -1,5 +1,23 @@
 # Learnings: Local Adaptive AI Runtime and Control Plane
 
+## Iteration 44 (2026-03-16)
+
+### What was built
+- **CONTRIBUTING.md**: Complete guide for new developers — setup, project structure, workflow, adding adapters/endpoints, key patterns, ADR references
+- **Total**: 403 tests, 151 commits, 44 iterations
+
+### Project is self-sustaining
+The codebase now has everything needed for a new developer to be productive:
+- CONTRIBUTING.md explains how to work in the codebase
+- Per-package READMEs explain each subsystem
+- 10 ADRs explain why decisions were made
+- 3 examples show common usage patterns
+- 403 tests prevent regressions
+- CI validates every push
+- ESLint enforces code quality
+
+---
+
 ## Iteration 43 (2026-03-16)
 
 ### What was built
