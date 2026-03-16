@@ -11,6 +11,7 @@ import type {
   Action,
   InferStreamChunk,
   Message,
+  ToolDefinition,
 } from "@lattice-kernel/schemas";
 import type { PolicyEngine } from "@lattice-kernel/policy-engine";
 import type { AuditSink } from "@lattice-kernel/audit";
@@ -31,6 +32,7 @@ export interface InferOptions {
   input: string;
   messages?: Message[];
   systemPrompt?: string;
+  tools?: ToolDefinition[];
   model?: string;
   executionPreference?: ExecutionPreference;
   memoryScope?: ScopeRef;

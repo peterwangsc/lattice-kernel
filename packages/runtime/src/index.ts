@@ -7,6 +7,8 @@ export type { RetryConfig } from "./retry-adapter.js";
 export { createRateLimitedAdapter } from "./rate-limiter.js";
 export type { RateLimiterConfig } from "./rate-limiter.js";
 export { createConversationManager } from "./conversation.js";
+export { runToolLoop } from "./tool-loop.js";
+export type { ToolLoopConfig, ToolLoopResult, ToolExecution } from "./tool-loop.js";
 export type {
   Conversation,
   ConversationManager,

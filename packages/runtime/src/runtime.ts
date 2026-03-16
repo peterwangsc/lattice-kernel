@@ -150,6 +150,7 @@ export function createRuntime(config: RuntimeConfig): Runtime {
         input: options.input,
         messages: options.messages,
         systemPrompt: options.systemPrompt,
+        tools: options.tools,
         maxTokens: options.maxTokens,
         temperature: options.temperature,
       });
@@ -246,6 +247,7 @@ export function createRuntime(config: RuntimeConfig): Runtime {
         input: options.input,
         messages: options.messages,
         systemPrompt: options.systemPrompt,
+        tools: options.tools,
         maxTokens: options.maxTokens,
         temperature: options.temperature,
       });
