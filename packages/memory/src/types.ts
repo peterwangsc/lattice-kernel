@@ -1,13 +1,38 @@
-import type { MemoryItem, MemoryType, ScopeRef } from "@lattice-kernel/schemas";
+import type { MemoryItem, MemoryType, ScopeRef, TrustLevel } from "@lattice-kernel/schemas";
+import type { PolicyEngine } from "@lattice-kernel/policy-engine";
+import type { AuditSink } from "@lattice-kernel/audit";
 
 export interface MemoryStore {
-  write(item: Omit<MemoryItem, "id" | "createdAt" | "hash">): Promise<MemoryItem>;
+  write(input: MemoryWriteInput): Promise<MemoryItem>;
   retrieve(query: string, scope: ScopeRef, options?: RetrieveOptions): Promise<MemoryItem[]>;
+  get(id: string): Promise<MemoryItem | undefined>;
   delete(id: string): Promise<void>;
+  expireStale(): Promise<number>;
+  count(): number;
+}
+
+export interface MemoryWriteInput {
+  scope: ScopeRef;
+  type: MemoryType;
+  content: string;
+  source: string;
+  provenance: Record<string, unknown>;
+  classification: string;
+  trustLevel: TrustLevel;
+  expiresAt?: string;
+  retentionPolicy?: string;
+  subjectRefs?: string[];
+  tags?: string[];
 }
 
 export interface RetrieveOptions {
   topK?: number;
   types?: MemoryType[];
-  minTrustLevel?: string;
+  minTrustLevel?: TrustLevel;
+}
+
+export interface MemoryStoreConfig {
+  policyEngine: PolicyEngine;
+  auditSink: AuditSink;
+  maxItems?: number;
 }
