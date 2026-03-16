@@ -27,8 +27,8 @@ jobs:
       - name: Install dependencies
         run: pnpm install --frozen-lockfile
 
-      - name: Rebuild native modules
-        run: pnpm rebuild better-sqlite3
+      - name: Build native modules
+        run: pnpm --filter @lattice-kernel/storage exec npm rebuild better-sqlite3
 
       - name: Build
         run: pnpm build
