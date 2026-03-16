@@ -1,5 +1,34 @@
 # Learnings: Local Adaptive AI Runtime and Control Plane
 
+## Iteration 22 (2026-03-16)
+
+### What was built
+- **OpenAI adapter**: Full BackendAdapter for OpenAI API — chat completions, embeddings, streaming, tool use (function calling format), organization header support. Uses AdapterError for failures. 11 tests with mocked fetch
+- **Vector similarity scorer**: cosineSimilarity for embedding-based retrieval, textOverlapScore as normalized fallback, createVectorScorer factory. 14 tests covering edge cases (orthogonal, zero, mismatched vectors)
+- **Total test count**: 329 unique tests across 11 packages
+
+### Architecture validation
+The OpenAI adapter validates the adapter abstraction is truly provider-agnostic:
+- **Same BackendAdapter interface**: Both Anthropic and OpenAI implement identical contract
+- **Different internal formats**: Anthropic uses `input_schema` for tools, OpenAI uses `function.parameters`. Anthropic uses nested `tool_result` content blocks, OpenAI uses `tool` role messages. All mapped transparently
+- **Different stop reasons**: Anthropic `end_turn`/`tool_use`, OpenAI `stop`/`tool_calls` — both mapped to generic `stopReason` enum
+- **Embedding support varies**: Anthropic has no embedding API, OpenAI has dedicated endpoint — both handled correctly
+
+### Technical notes
+- OpenAI system prompt goes as a `system` role message (first in array), while Anthropic uses a separate `system` field — the adapter handles this mapping
+- OpenAI tool_result messages use `role: "tool"` with `tool_call_id`, vs Anthropic's nested `user` message with `tool_result` content block
+- cosineSimilarity handles edge cases: zero vectors, mismatched dimensions, empty arrays all return 0
+- textOverlapScore normalizes to [0,1] by dividing by query term count
+
+### What's next (if continued)
+- Wire vector scorer into memory store retrieval pipeline
+- Embedding generation at memory write time (auto-embed content)
+- Vector index for sub-linear retrieval (currently O(n) scan)
+- Production deployment (Docker, systemd)
+- Multi-runtime agent coordination
+
+---
+
 ## Iteration 21 (2026-03-16)
 
 ### What was built
