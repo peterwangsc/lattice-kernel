@@ -10,6 +10,8 @@ import type {
   ActResult,
 } from "./types.js";
 import type { BackendAdapter, Plan } from "@lattice-kernel/schemas";
+import { createModelRegistry } from "./model-registry.js";
+import type { ModelRegistry } from "./model-registry.js";
 
 let requestCounter = 0;
 function nextRequestId(): string {
@@ -20,11 +22,32 @@ export function createRuntime(config: RuntimeConfig): Runtime {
   const { adapters, policyEngine, auditSink, tools = [] } = config;
   const toolMap = new Map(tools.map((t) => [t.toolId, t]));
 
+  // Model registry for model-aware routing
+  const registry: ModelRegistry = createModelRegistry(adapters);
+  let registryInitialized = false;
+
+  async function ensureRegistry(): Promise<void> {
+    if (!registryInitialized) {
+      await registry.refresh();
+      registryInitialized = true;
+    }
+  }
+
   async function selectAdapter(
     preference: string | undefined,
+    modelId?: string,
   ): Promise<BackendAdapter> {
     if (adapters.length === 0) {
       throw new Error("No adapters configured");
+    }
+
+    // If a specific model is requested, use the registry to find its adapter
+    if (modelId && modelId !== "default") {
+      await ensureRegistry();
+      const modelAdapter = registry.getAdapterForModel(modelId);
+      if (modelAdapter) {
+        return modelAdapter;
+      }
     }
 
     for (const adapter of adapters) {
@@ -79,8 +102,11 @@ export function createRuntime(config: RuntimeConfig): Runtime {
         );
       }
 
-      // Route selection
-      const adapter = await selectAdapter(options.executionPreference);
+      // Route selection (model-aware)
+      const adapter = await selectAdapter(
+        options.executionPreference,
+        options.model,
+      );
       const route = adapter.providerId;
 
       // Execute inference

@@ -240,6 +240,66 @@ describe("Runtime", () => {
       });
       expect(result.route).toBe("healthy");
     });
+
+    it("routes to correct adapter based on model ID via registry", async () => {
+      const adapter1 = createMockAdapter({
+        providerId: "adapter-a",
+        async listModels() {
+          return [
+            {
+              id: "model-a",
+              version: "1.0",
+              provider: "a",
+              format: "mock",
+              capabilities: {
+                supportsEmbedding: false,
+                supportsToolCalling: false,
+                supportsAdaptation: false,
+                supportsMultimodal: false,
+              },
+              executionTargets: ["cpu"],
+              policyTags: [],
+            },
+          ];
+        },
+      });
+      const adapter2 = createMockAdapter({
+        providerId: "adapter-b",
+        async listModels() {
+          return [
+            {
+              id: "model-b",
+              version: "1.0",
+              provider: "b",
+              format: "mock",
+              capabilities: {
+                supportsEmbedding: false,
+                supportsToolCalling: false,
+                supportsAdaptation: false,
+                supportsMultimodal: false,
+              },
+              executionTargets: ["cloud"],
+              policyTags: [],
+            },
+          ];
+        },
+      });
+
+      const policyEngine = createPolicyEngine({ defaultDeny: false });
+      const rt = createRuntime({
+        adapters: [adapter1, adapter2],
+        policyEngine,
+        auditSink,
+      });
+
+      // model-b should route to adapter-b
+      const result = await rt.infer({
+        input: "test",
+        model: "model-b",
+        trustLevel: "trusted_user_explicit",
+      });
+      expect(result.route).toBe("adapter-b");
+    });
   });
 
   describe("embed", () => {
