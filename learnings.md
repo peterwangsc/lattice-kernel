@@ -1,5 +1,30 @@
 # Learnings: Local Adaptive AI Runtime and Control Plane
 
+## Iteration 27 (2026-03-16)
+
+### What was built
+- **Adapter contract tests**: Generic test suite verifying BackendAdapter interface compliance. Run against adapter-local and adapter-cloud (Anthropic, mocked). 13 tests
+- **Memory pipeline invariant tests**: 11 tests verifying all spec 12.3 guarantees — policy gate, approval block, hash integrity, audit emission, scope isolation, retention, checkpoint/rollback
+- **Test coverage audit**: All 7 categories from spec section 20.2 confirmed covered
+- **Total**: 363 tests across 11 packages, 104 commits
+
+### Spec 20.2 test coverage verification
+| Category | Status | Test count |
+|----------|--------|------------|
+| Policy logic unit tests | COVERED | 9 |
+| Memory pipeline unit tests | COVERED | 82 |
+| Adapter contract tests | COVERED | 13 |
+| Route selection tests | COVERED | 4+ |
+| Audit emission tests | COVERED | 5+ |
+| Checkpoint/rollback tests | COVERED | 30+ |
+| E2E SDK integration tests | COVERED | 17 + 37 (full-stack) |
+
+### Architecture decisions made
+- **Contract tests are parameterized**: `runAdapterContractTests(name, factory)` takes any adapter factory. New adapters can be validated by calling this function with their factory
+- **Invariant tests test error types**: Pipeline invariant tests verify that `PolicyDeniedError` and `ApprovalRequiredError` are the correct error types thrown — not just that something throws
+
+---
+
 ## Iteration 26 (2026-03-16)
 
 ### What was built
