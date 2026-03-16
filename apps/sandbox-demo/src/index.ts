@@ -11,7 +11,9 @@ import {
   createConversationManager,
   createRetryAdapter,
   createRateLimitedAdapter,
+  createPromptTemplate,
   runToolLoop,
+  PolicyDeniedError,
 } from "@lattice-kernel/sdk";
 import type {
   BackendAdapter,
@@ -298,7 +300,45 @@ async function main() {
   await lattice.rollback(cp.checkpointId);
   console.log(`After rollback: ${(await lattice.retrieve("experimental", { types: ["semantic"] })).length} matches`);
 
-  // 7. Summary
+  // 7. Prompt templates
+  console.log("\n--- Prompt Templates ---");
+  const tmpl = createPromptTemplate({
+    name: "customer-summary",
+    systemPrompt: "You are a {{role}} assistant.",
+    template: "Summarize the interaction with {{customer}} about {{topic}}.",
+  });
+  console.log(`Template variables: ${tmpl.variables.join(", ")}`);
+  const rendered = tmpl.renderMessages({
+    role: "customer success",
+    customer: "Acme Corp",
+    topic: "billing upgrade",
+  });
+  console.log(`System: ${rendered.systemPrompt}`);
+  console.log(`User: ${rendered.messages[0]!.content}`);
+
+  // 8. Structured error handling
+  console.log("\n--- Structured Errors ---");
+  const restrictedLattice = createLattice({
+    adapters: [resilientAdapter],
+    defaultDeny: true, // No allow rules
+  });
+  try {
+    await restrictedLattice.infer("This should fail");
+  } catch (err) {
+    if (err instanceof PolicyDeniedError) {
+      console.log(`Caught PolicyDeniedError: code=${err.code}, rules=[${err.matchedRules}]`);
+    }
+  }
+
+  // 9. Cost-aware routing
+  console.log("\n--- Cost Constraints ---");
+  const costResult = await lattice.infer("Quick question", {
+    maxLatencyMs: 5000,
+    maxCost: 1.0,
+  });
+  console.log(`Cost-constrained result: ${costResult.output.slice(0, 50)}...`);
+
+  // 10. Summary
   console.log("\n╔══════════════════════════════════════════╗");
   console.log("║   Demo Complete                          ║");
   console.log("╠══════════════════════════════════════════╣");
@@ -309,6 +349,9 @@ async function main() {
   console.log("║  - Streaming inference                   ║");
   console.log("║  - Agentic tool execution loop           ║");
   console.log("║  - Checkpoint and rollback               ║");
+  console.log("║  - Prompt templates                      ║");
+  console.log("║  - Structured error handling             ║");
+  console.log("║  - Cost-aware routing                    ║");
   console.log("╚══════════════════════════════════════════╝");
 }
 

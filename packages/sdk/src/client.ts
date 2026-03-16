@@ -46,6 +46,8 @@ export interface InferOptions {
   trustLevel?: TrustLevel;
   maxTokens?: number;
   temperature?: number;
+  maxLatencyMs?: number;
+  maxCost?: number;
 }
 
 export interface RememberOptions {
@@ -128,6 +130,8 @@ export class Lattice {
       trustLevel: options.trustLevel ?? this.defaultTrustLevel,
       maxTokens: options.maxTokens,
       temperature: options.temperature,
+      maxLatencyMs: options.maxLatencyMs,
+      maxCost: options.maxCost,
     });
   }
 
@@ -142,6 +146,8 @@ export class Lattice {
       trustLevel: options.trustLevel ?? this.defaultTrustLevel,
       maxTokens: options.maxTokens,
       temperature: options.temperature,
+      maxLatencyMs: options.maxLatencyMs,
+      maxCost: options.maxCost,
     });
   }
 
