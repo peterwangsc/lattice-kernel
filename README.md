@@ -29,7 +29,7 @@ pnpm --filter @lattice-kernel/sandbox-demo start
 # Run the control plane
 pnpm --filter @lattice-kernel/control-plane start
 
-# Run tests (380 tests)
+# Run tests (404 tests)
 pnpm test
 ```
 
@@ -172,7 +172,7 @@ Endpoints:
 ```bash
 pnpm install          # Install dependencies
 pnpm build            # Build all packages
-pnpm test             # Run 380 tests
+pnpm test             # Run 404 tests
 pnpm lint             # ESLint
 pnpm typecheck        # Type check
 

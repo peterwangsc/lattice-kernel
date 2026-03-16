@@ -7,7 +7,7 @@ git clone https://github.com/peterwangsc/lattice-kernel.git
 cd lattice-kernel
 pnpm install
 pnpm build
-pnpm test    # 403 tests
+pnpm test    # 404 tests
 pnpm lint    # zero errors
 ```
 
