@@ -1,5 +1,33 @@
 # Learnings: Local Adaptive AI Runtime and Control Plane
 
+## Iteration 18 (2026-03-16)
+
+### What was built
+- **Benchmark suite**: Framework with percentile stats (p50/p95/p99), ops/sec, warmup. Benchmarks for policy eval (~2.9M ops/sec), audit emit (~1.4M), memory write (~678K), retrieval (~1.3K), runtime infer (~858K), SHA-256 (~1.9M), AES-256-GCM (~326K), checkpoint (~148K). 2 framework tests
+- **OpenAPI 3.0 spec**: `GET /api/v1/openapi.json` returns full spec with all endpoints, schemas (PolicyRule, AuditEvent), query params, security schemes. 1 test
+- **Total test count**: 289 unique tests across 10 packages (tooling now included)
+
+### Performance baselines
+- Policy evaluation is essentially free (~0.3µs per eval)
+- Memory retrieval is the bottleneck (~754µs for topK=10 over 100 items) due to text-based relevance scoring — embedding-based retrieval would improve this significantly
+- SHA-256 and AES-256-GCM are fast enough for per-item hashing/encryption without concern
+- Checkpoint cost scales linearly with item count but is still fast (~7µs per item)
+
+### Architecture decisions made
+- **Benchmarks in tooling package**: The tooling package is the natural home for developer utilities. The framework itself is exported for custom benchmarks
+- **OpenAPI as JSON object**: The spec is a TypeScript object served as JSON. This is simpler than YAML files and means the spec is always in sync with what the server actually serves. No code generation or separate spec maintenance
+- **Benchmark warmup**: 10 warmup iterations before measured runs eliminate JIT compilation noise from results
+
+### What's next (suggested)
+- Webhook notifications for audit events (real-time observability)
+- Dashboard frontend for control plane
+- Embedding-based retrieval (replace text scoring with vector similarity)
+- More adapter implementations (OpenAI, local llama.cpp)
+- Database migration system for schema evolution
+- Production deployment guide
+
+---
+
 ## Iteration 17 (2026-03-16)
 
 ### What was built
