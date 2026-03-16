@@ -12,5 +12,8 @@
     "lint": "pnpm -r lint",
     "typecheck": "pnpm -r typecheck",
     "clean": "pnpm -r clean"
+  },
+  "devDependencies": {
+    "vitest": "^4.1.0"
   }
 }

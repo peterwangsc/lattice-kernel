@@ -16,7 +16,7 @@
     "typecheck": "tsc --noEmit",
     "clean": "rm -rf dist *.tsbuildinfo",
     "lint": "echo 'no linter configured yet'",
-    "test": "echo 'no tests configured yet'"
+    "test": "vitest run"
   },
   "dependencies": {
     "@lattice-kernel/schemas": "workspace:*"
