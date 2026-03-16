@@ -67,4 +67,6 @@ export {
   createRequestContext,
   createChildContext,
   runToolLoop,
+  explainPolicyDecision,
 } from "@lattice-kernel/runtime";
+export type { DecisionExplanation } from "@lattice-kernel/runtime";
