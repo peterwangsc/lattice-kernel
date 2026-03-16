@@ -1,5 +1,35 @@
 # Learnings: Local Adaptive AI Runtime and Control Plane
 
+## Iteration 38 (2026-03-16)
+
+### What was built
+- **Stub adapters now return usable responses**: Local, web, and cloud generic adapters return echo responses instead of throwing errors. Makes them usable for development without a real backend
+- **Custom adapter example**: `examples/custom-adapter.ts` showing how to create adapters for Ollama (local), vLLM/LocalAI (OpenAI-compatible), or any custom LLM backend
+- **Control plane banner**: Now lists all 16 endpoints at startup
+- **Dockerfile HEALTHCHECK**: Automatic health monitoring in production
+- **OpenAPI spec**: All 16 endpoints documented
+
+### Examples now cover 3 scenarios
+1. `examples/quickstart.ts` — minimal in-memory SDK usage
+2. `examples/persistent.ts` — SQLite-backed persistent storage
+3. `examples/custom-adapter.ts` — building adapters for any LLM backend
+
+### How to connect a custom LLM
+The BackendAdapter interface requires 7 methods. For a minimal working adapter:
+1. `providerId` — unique string ID
+2. `getCapabilities()` — what the backend supports
+3. `infer(request)` — call your LLM and return `{ output, modelId, durationMs }`
+4. `embed(request)` — generate embeddings (or throw if unsupported)
+5. `listModels()` — return available models
+6. `estimate()` — return cost/latency estimates
+7. `healthCheck()` — return boolean for backend availability
+
+Two ready-to-use patterns are provided:
+- **Ollama** — for local models via `localhost:11434`
+- **OpenAI-compatible** — for any server implementing `/v1/chat/completions`
+
+---
+
 ## Iteration 37 (2026-03-16)
 
 ### What was built
