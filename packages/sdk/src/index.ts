@@ -22,6 +22,7 @@ export type {
   PlanStep,
   Action,
   InferStreamChunk,
+  Message,
 } from "@lattice-kernel/schemas";
 
 // Re-export from runtime

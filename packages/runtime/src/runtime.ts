@@ -148,6 +148,8 @@ export function createRuntime(config: RuntimeConfig): Runtime {
       const adapterResponse = await adapter.infer({
         modelId: options.model ?? "default",
         input: options.input,
+        messages: options.messages,
+        systemPrompt: options.systemPrompt,
         maxTokens: options.maxTokens,
         temperature: options.temperature,
       });
@@ -220,6 +222,8 @@ export function createRuntime(config: RuntimeConfig): Runtime {
         const adapterStream = adapter.inferStream({
           modelId: options.model ?? "default",
           input: options.input,
+          messages: options.messages,
+          systemPrompt: options.systemPrompt,
           maxTokens: options.maxTokens,
           temperature: options.temperature,
         });
@@ -240,6 +244,8 @@ export function createRuntime(config: RuntimeConfig): Runtime {
       const response = await adapter.infer({
         modelId: options.model ?? "default",
         input: options.input,
+        messages: options.messages,
+        systemPrompt: options.systemPrompt,
         maxTokens: options.maxTokens,
         temperature: options.temperature,
       });

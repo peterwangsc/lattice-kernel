@@ -10,6 +10,7 @@ import type {
   PlanStep,
   Action,
   InferStreamChunk,
+  Message,
 } from "@lattice-kernel/schemas";
 import type { PolicyEngine } from "@lattice-kernel/policy-engine";
 import type { AuditSink } from "@lattice-kernel/audit";
@@ -28,6 +29,8 @@ export interface RuntimeConfig {
 
 export interface InferOptions {
   input: string;
+  messages?: Message[];
+  systemPrompt?: string;
   model?: string;
   executionPreference?: ExecutionPreference;
   memoryScope?: ScopeRef;

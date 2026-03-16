@@ -116,6 +116,68 @@ describe("AnthropicAdapter", () => {
       expect(body.stop_sequences).toEqual(["END"]);
     });
 
+    it("sends multi-turn messages when provided", async () => {
+      mockFetchSuccess();
+      const adapter = createAnthropicAdapter({ apiKey: "test-key" });
+
+      await adapter.infer({
+        modelId: "claude-sonnet-4-6",
+        input: "latest message",
+        messages: [
+          { role: "user", content: "What is 2+2?" },
+          { role: "assistant", content: "4" },
+          { role: "user", content: "And 3+3?" },
+        ],
+      });
+
+      const body = JSON.parse(
+        (globalThis.fetch as ReturnType<typeof vi.fn>).mock.calls[0]![1]
+          .body as string,
+      );
+      expect(body.messages).toHaveLength(3);
+      expect(body.messages[0].content).toBe("What is 2+2?");
+      expect(body.messages[1].role).toBe("assistant");
+      expect(body.messages[2].content).toBe("And 3+3?");
+    });
+
+    it("sends system prompt", async () => {
+      mockFetchSuccess();
+      const adapter = createAnthropicAdapter({ apiKey: "test-key" });
+
+      await adapter.infer({
+        modelId: "claude-sonnet-4-6",
+        input: "hello",
+        systemPrompt: "You are a helpful assistant.",
+      });
+
+      const body = JSON.parse(
+        (globalThis.fetch as ReturnType<typeof vi.fn>).mock.calls[0]![1]
+          .body as string,
+      );
+      expect(body.system).toBe("You are a helpful assistant.");
+    });
+
+    it("uses input as single user message when no messages provided", async () => {
+      mockFetchSuccess();
+      const adapter = createAnthropicAdapter({ apiKey: "test-key" });
+
+      await adapter.infer({
+        modelId: "claude-sonnet-4-6",
+        input: "just a question",
+      });
+
+      const body = JSON.parse(
+        (globalThis.fetch as ReturnType<typeof vi.fn>).mock.calls[0]![1]
+          .body as string,
+      );
+      expect(body.messages).toHaveLength(1);
+      expect(body.messages[0]).toEqual({
+        role: "user",
+        content: "just a question",
+      });
+      expect(body.system).toBeUndefined();
+    });
+
     it("sends correct headers", async () => {
       mockFetchSuccess();
       const adapter = createAnthropicAdapter({ apiKey: "sk-test-123" });

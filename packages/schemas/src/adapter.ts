@@ -11,9 +11,17 @@ export const BackendCapabilities = z.object({
 });
 export type BackendCapabilities = z.infer<typeof BackendCapabilities>;
 
+export const Message = z.object({
+  role: z.enum(["user", "assistant"]),
+  content: z.string(),
+});
+export type Message = z.infer<typeof Message>;
+
 export const InferRequest = z.object({
   modelId: z.string(),
   input: z.string(),
+  messages: z.array(Message).optional(),
+  systemPrompt: z.string().optional(),
   maxTokens: z.number().optional(),
   temperature: z.number().optional(),
   stopSequences: z.array(z.string()).optional(),

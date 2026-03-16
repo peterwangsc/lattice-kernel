@@ -7,6 +7,7 @@ import type {
   MemoryType,
   Plan,
   PlanStep,
+  Message,
 } from "@lattice-kernel/schemas";
 import { createRuntime } from "@lattice-kernel/runtime";
 import type {
@@ -38,6 +39,8 @@ export interface LatticeConfig {
 
 export interface InferOptions {
   model?: string;
+  messages?: Message[];
+  systemPrompt?: string;
   executionPreference?: ExecutionPreference;
   scope?: ScopeRef;
   trustLevel?: TrustLevel;
@@ -117,6 +120,8 @@ export class Lattice {
   async infer(input: string, options: InferOptions = {}): Promise<InferResult> {
     return this.runtime.infer({
       input,
+      messages: options.messages,
+      systemPrompt: options.systemPrompt,
       model: options.model,
       executionPreference: options.executionPreference,
       memoryScope: options.scope ?? this.defaultScope,
@@ -129,6 +134,8 @@ export class Lattice {
   async inferStream(input: string, options: InferOptions = {}): Promise<InferStreamResult> {
     return this.runtime.inferStream({
       input,
+      messages: options.messages,
+      systemPrompt: options.systemPrompt,
       model: options.model,
       executionPreference: options.executionPreference,
       memoryScope: options.scope ?? this.defaultScope,

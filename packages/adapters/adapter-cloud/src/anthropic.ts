@@ -94,6 +94,35 @@ export function createAnthropicAdapter(
     return response.json();
   }
 
+  function buildRequestBody(
+    request: InferRequest,
+    model: string,
+  ): Record<string, unknown> {
+    // Use messages array if provided, otherwise wrap input as single user message
+    const messages =
+      request.messages && request.messages.length > 0
+        ? request.messages.map((m) => ({ role: m.role, content: m.content }))
+        : [{ role: "user", content: request.input }];
+
+    const body: Record<string, unknown> = {
+      model,
+      max_tokens: request.maxTokens ?? 1024,
+      messages,
+    };
+
+    if (request.systemPrompt) {
+      body.system = request.systemPrompt;
+    }
+    if (request.temperature !== undefined) {
+      body.temperature = request.temperature;
+    }
+    if (request.stopSequences && request.stopSequences.length > 0) {
+      body.stop_sequences = request.stopSequences;
+    }
+
+    return body;
+  }
+
   return {
     providerId: "cloud:anthropic",
 
@@ -116,18 +145,7 @@ export function createAnthropicAdapter(
         request.modelId === "default" ? defaultModel : request.modelId;
       const startMs = Date.now();
 
-      const body: Record<string, unknown> = {
-        model,
-        max_tokens: request.maxTokens ?? 1024,
-        messages: [{ role: "user", content: request.input }],
-      };
-
-      if (request.temperature !== undefined) {
-        body.temperature = request.temperature;
-      }
-      if (request.stopSequences && request.stopSequences.length > 0) {
-        body.stop_sequences = request.stopSequences;
-      }
+      const body = buildRequestBody(request, model);
 
       const result = (await callApi(
         "/v1/messages",
@@ -149,16 +167,8 @@ export function createAnthropicAdapter(
       const model =
         request.modelId === "default" ? defaultModel : request.modelId;
 
-      const body: Record<string, unknown> = {
-        model,
-        max_tokens: request.maxTokens ?? 1024,
-        messages: [{ role: "user", content: request.input }],
-        stream: true,
-      };
-
-      if (request.temperature !== undefined) {
-        body.temperature = request.temperature;
-      }
+      const body = buildRequestBody(request, model);
+      body.stream = true;
 
       const url = `${baseUrl}/v1/messages`;
       const response = await fetch(url, {
