@@ -20,7 +20,16 @@ pnpm typecheck        # Type-check without emitting
 # Single package
 pnpm --filter @lattice-kernel/schemas build
 pnpm --filter @lattice-kernel/runtime test
+
+# Test framework: vitest (runs directly against TS source, no build needed)
+# Tests live in src/__tests__/*.test.ts within each package
 ```
+
+## Package Dependency Order
+
+schemas → audit, policy-engine, adapters → runtime, memory → sdk → apps
+
+The SDK (`createLattice`) is the main developer entry point — it wires together runtime, policy engine, audit sink, and memory store.
 
 ## Technical Stack
 
