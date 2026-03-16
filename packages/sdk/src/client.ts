@@ -20,13 +20,15 @@ import { createPolicyEngine } from "@lattice-kernel/policy-engine";
 import type { PolicyEngine } from "@lattice-kernel/policy-engine";
 import { createMemoryAuditSink } from "@lattice-kernel/audit";
 import type { AuditSink } from "@lattice-kernel/audit";
-import { createMemoryStore } from "@lattice-kernel/memory";
+import { createMemoryStore, createEncryptedMemoryStore } from "@lattice-kernel/memory";
 import type { MemoryStore, MemoryWriteInput } from "@lattice-kernel/memory";
+import type { CryptoProvider } from "@lattice-kernel/crypto";
 import type { MemoryItem, Checkpoint } from "@lattice-kernel/schemas";
 
 export interface LatticeConfig {
   adapters: BackendAdapter[];
   tools?: ToolAdapter[];
+  crypto?: CryptoProvider;
   defaultTrustLevel?: TrustLevel;
   defaultScope?: ScopeRef;
   policyRules?: PolicyRule[];
@@ -94,10 +96,14 @@ export class Lattice {
 
     this.auditSink = createMemoryAuditSink();
 
-    this.memoryStore = createMemoryStore({
+    const baseMemoryStore = createMemoryStore({
       policyEngine: this.policyEngine,
       auditSink: this.auditSink,
+      crypto: config.crypto,
     });
+    this.memoryStore = config.crypto
+      ? createEncryptedMemoryStore(baseMemoryStore, config.crypto)
+      : baseMemoryStore;
 
     this.runtime = createRuntime({
       adapters: config.adapters,

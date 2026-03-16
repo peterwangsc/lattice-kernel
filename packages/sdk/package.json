@@ -23,7 +23,8 @@
     "@lattice-kernel/runtime": "workspace:*",
     "@lattice-kernel/policy-engine": "workspace:*",
     "@lattice-kernel/audit": "workspace:*",
-    "@lattice-kernel/memory": "workspace:*"
+    "@lattice-kernel/memory": "workspace:*",
+    "@lattice-kernel/crypto": "workspace:*"
   },
   "devDependencies": {
     "typescript": "^5.7.0"

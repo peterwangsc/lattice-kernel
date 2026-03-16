@@ -10,6 +10,7 @@
     { "path": "../runtime" },
     { "path": "../policy-engine" },
     { "path": "../audit" },
-    { "path": "../memory" }
+    { "path": "../memory" },
+    { "path": "../crypto" }
   ]
 }
