@@ -1,6 +1,7 @@
 import { describe, it, expect } from "vitest";
 import { createLattice } from "../client.js";
 import type { BackendAdapter, PolicyRule } from "@lattice-kernel/schemas";
+import type { ToolAdapter } from "@lattice-kernel/runtime";
 
 function createMockAdapter(): BackendAdapter {
   return {
@@ -262,6 +263,72 @@ describe("Lattice SDK", () => {
 
       const cps = lattice.listCheckpoints();
       expect(cps).toHaveLength(2);
+    });
+  });
+
+  describe("plan", () => {
+    it("creates a plan from a goal", async () => {
+      const lattice = createLattice({
+        adapters: [createMockAdapter()],
+        policyRules: [ALLOW_ALL_RULE],
+      });
+
+      const plan = await lattice.plan("Send a report to the team");
+      expect(plan.planId).toBeTruthy();
+      expect(plan.intent).toBe("Send a report to the team");
+      expect(plan.status).toBe("draft");
+    });
+
+    it("accepts custom steps", async () => {
+      const lattice = createLattice({
+        adapters: [createMockAdapter()],
+        policyRules: [ALLOW_ALL_RULE],
+      });
+
+      const plan = await lattice.plan("Multi-step workflow", {
+        steps: [
+          {
+            id: "s1",
+            description: "Gather data",
+            requiredTools: [],
+            dependencies: [],
+            riskFlags: [],
+            requiresApproval: false,
+          },
+        ],
+      });
+      expect(plan.steps).toHaveLength(1);
+    });
+  });
+
+  describe("act", () => {
+    it("executes a tool through the SDK", async () => {
+      const calculator: ToolAdapter = {
+        toolId: "calc",
+        async execute(input) {
+          return { sum: (input.a as number) + (input.b as number) };
+        },
+      };
+
+      const lattice = createLattice({
+        adapters: [createMockAdapter()],
+        tools: [calculator],
+        policyRules: [ALLOW_ALL_RULE],
+      });
+
+      const result = await lattice.act("calc", { input: { a: 10, b: 20 } });
+      expect(result.action.result).toEqual({ sum: 30 });
+      expect(result.action.tool).toBe("calc");
+    });
+
+    it("throws when policy denies action", async () => {
+      const lattice = createLattice({
+        adapters: [createMockAdapter()],
+        tools: [{ toolId: "t", async execute() { return {}; } }],
+        defaultDeny: true,
+      });
+
+      await expect(lattice.act("t")).rejects.toThrow("Policy denied");
     });
   });
 });

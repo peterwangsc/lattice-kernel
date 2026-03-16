@@ -5,9 +5,17 @@ import type {
   ExecutionPreference,
   PolicyRule,
   MemoryType,
+  Plan,
+  PlanStep,
 } from "@lattice-kernel/schemas";
 import { createRuntime } from "@lattice-kernel/runtime";
-import type { Runtime, InferResult, EmbedResult } from "@lattice-kernel/runtime";
+import type {
+  Runtime,
+  InferResult,
+  EmbedResult,
+  ToolAdapter,
+  ActResult,
+} from "@lattice-kernel/runtime";
 import { createPolicyEngine } from "@lattice-kernel/policy-engine";
 import type { PolicyEngine } from "@lattice-kernel/policy-engine";
 import { createMemoryAuditSink } from "@lattice-kernel/audit";
@@ -18,6 +26,7 @@ import type { MemoryItem, Checkpoint } from "@lattice-kernel/schemas";
 
 export interface LatticeConfig {
   adapters: BackendAdapter[];
+  tools?: ToolAdapter[];
   defaultTrustLevel?: TrustLevel;
   defaultScope?: ScopeRef;
   policyRules?: PolicyRule[];
@@ -47,6 +56,20 @@ export interface RetrieveOptions {
   topK?: number;
   types?: MemoryType[];
   minTrustLevel?: TrustLevel;
+}
+
+export interface PlanOptions {
+  scope?: ScopeRef;
+  trustLevel?: TrustLevel;
+  availableTools?: string[];
+  steps?: PlanStep[];
+}
+
+export interface ActOptions {
+  input?: Record<string, unknown>;
+  scope?: ScopeRef;
+  trustLevel?: TrustLevel;
+  planRef?: string;
 }
 
 export class Lattice {
@@ -80,6 +103,7 @@ export class Lattice {
       adapters: config.adapters,
       policyEngine: this.policyEngine,
       auditSink: this.auditSink,
+      tools: config.tools,
     });
   }
 
@@ -127,6 +151,26 @@ export class Lattice {
         minTrustLevel: options.minTrustLevel,
       },
     );
+  }
+
+  async plan(goal: string, options: PlanOptions = {}): Promise<Plan> {
+    return this.runtime.plan({
+      goal,
+      scope: options.scope ?? this.defaultScope,
+      trustLevel: options.trustLevel ?? this.defaultTrustLevel,
+      availableTools: options.availableTools,
+      steps: options.steps,
+    });
+  }
+
+  async act(tool: string, options: ActOptions = {}): Promise<ActResult> {
+    return this.runtime.act({
+      tool,
+      input: options.input ?? {},
+      scope: options.scope ?? this.defaultScope,
+      trustLevel: options.trustLevel ?? this.defaultTrustLevel,
+      planRef: options.planRef,
+    });
   }
 
   async listModels(): Promise<string[]> {
