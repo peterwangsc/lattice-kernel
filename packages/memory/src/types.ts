@@ -3,6 +3,13 @@ import type { PolicyEngine } from "@lattice-kernel/policy-engine";
 import type { AuditSink } from "@lattice-kernel/audit";
 import type { CryptoProvider } from "@lattice-kernel/crypto";
 
+export interface MemoryStats {
+  totalItems: number;
+  checkpointCount: number;
+  itemsByType: Record<string, number>;
+  itemsByTenant: Record<string, number>;
+}
+
 export interface MemoryStore {
   write(input: MemoryWriteInput): Promise<MemoryItem>;
   retrieve(query: string, scope: ScopeRef, options?: RetrieveOptions): Promise<MemoryItem[]>;
@@ -10,6 +17,7 @@ export interface MemoryStore {
   delete(id: string): Promise<void>;
   expireStale(): Promise<number>;
   count(): number;
+  stats(): MemoryStats;
   checkpoint(description?: string): Promise<Checkpoint>;
   rollback(checkpointId: string): Promise<void>;
   listCheckpoints(): Checkpoint[];

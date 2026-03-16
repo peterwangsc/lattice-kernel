@@ -1,6 +1,6 @@
 import type { MemoryItem, ScopeRef, Checkpoint } from "@lattice-kernel/schemas";
 import type { CryptoProvider } from "@lattice-kernel/crypto";
-import type { MemoryStore, MemoryWriteInput, RetrieveOptions, VerifyResult } from "./types.js";
+import type { MemoryStore, MemoryWriteInput, RetrieveOptions, VerifyResult, MemoryStats } from "./types.js";
 
 const encoder = new TextEncoder();
 const decoder = new TextDecoder();
@@ -87,6 +87,10 @@ export function createEncryptedMemoryStore(
 
     listCheckpoints(): Checkpoint[] {
       return inner.listCheckpoints();
+    },
+
+    stats(): MemoryStats {
+      return inner.stats();
     },
 
     async verify(itemId: string): Promise<VerifyResult> {

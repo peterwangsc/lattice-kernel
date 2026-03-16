@@ -1,7 +1,7 @@
 import type { MemoryItem, ScopeRef, TrustLevel, Checkpoint } from "@lattice-kernel/schemas";
 import { PolicyDeniedError, ApprovalRequiredError, CheckpointNotFoundError } from "@lattice-kernel/schemas";
 import { textOverlapScore } from "./vector-scorer.js";
-import type { MemoryStore, MemoryStoreConfig, MemoryWriteInput, RetrieveOptions, VerifyResult } from "./types.js";
+import type { MemoryStore, MemoryStoreConfig, MemoryWriteInput, RetrieveOptions, VerifyResult, MemoryStats } from "./types.js";
 
 const TRUST_ORDER: TrustLevel[] = [
   "quarantined",
@@ -253,6 +253,22 @@ export function createMemoryStore(config: MemoryStoreConfig): MemoryStore {
 
     count(): number {
       return items.size;
+    },
+
+    stats(): MemoryStats {
+      const itemsByType: Record<string, number> = {};
+      const itemsByTenant: Record<string, number> = {};
+      for (const item of items.values()) {
+        itemsByType[item.type] = (itemsByType[item.type] ?? 0) + 1;
+        const tenant = (item.scope as Record<string, unknown>).tenantId as string ?? "unknown";
+        itemsByTenant[tenant] = (itemsByTenant[tenant] ?? 0) + 1;
+      }
+      return {
+        totalItems: items.size,
+        checkpointCount: checkpoints.size,
+        itemsByType,
+        itemsByTenant,
+      };
     },
 
     async checkpoint(description?: string): Promise<Checkpoint> {

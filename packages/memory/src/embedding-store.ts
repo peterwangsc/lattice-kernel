@@ -1,5 +1,5 @@
 import type { MemoryItem, ScopeRef, Checkpoint } from "@lattice-kernel/schemas";
-import type { MemoryStore, MemoryWriteInput, RetrieveOptions, VerifyResult } from "./types.js";
+import type { MemoryStore, MemoryWriteInput, RetrieveOptions, VerifyResult, MemoryStats } from "./types.js";
 import { cosineSimilarity } from "./vector-scorer.js";
 
 /**
@@ -104,6 +104,10 @@ export function createEmbeddingMemoryStore(
 
     listCheckpoints(): Checkpoint[] {
       return inner.listCheckpoints();
+    },
+
+    stats(): MemoryStats {
+      return inner.stats();
     },
 
     async verify(itemId: string): Promise<VerifyResult> {

@@ -303,4 +303,21 @@ describe("MemoryStore", () => {
       expect(result.error).toBe("Checkpoint not found");
     });
   });
+
+  describe("stats", () => {
+    it("returns memory statistics", async () => {
+      await store.write(makeInput({ scope: { tenantId: "acme" }, type: "semantic" }));
+      await store.write(makeInput({ scope: { tenantId: "acme" }, type: "preference" }));
+      await store.write(makeInput({ scope: { tenantId: "globex" }, type: "semantic" }));
+      await store.checkpoint("test");
+
+      const s = store.stats();
+      expect(s.totalItems).toBe(3);
+      expect(s.checkpointCount).toBe(1);
+      expect(s.itemsByType.semantic).toBe(2);
+      expect(s.itemsByType.preference).toBe(1);
+      expect(s.itemsByTenant.acme).toBe(2);
+      expect(s.itemsByTenant.globex).toBe(1);
+    });
+  });
 });

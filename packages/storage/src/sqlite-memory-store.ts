@@ -358,6 +358,21 @@ export function createSqliteMemoryStore(
       return row.cnt;
     },
 
+    stats() {
+      const total = (countAll.get() as { cnt: number }).cnt;
+      const cpCount = (db.prepare("SELECT COUNT(*) as cnt FROM memory_checkpoints").get() as { cnt: number }).cnt;
+
+      const typeRows = db.prepare("SELECT type, COUNT(*) as cnt FROM memory_items GROUP BY type").all() as Array<{ type: string; cnt: number }>;
+      const itemsByType: Record<string, number> = {};
+      for (const r of typeRows) itemsByType[r.type] = r.cnt;
+
+      const tenantRows = db.prepare("SELECT COALESCE(scope_tenant, 'unknown') as tenant, COUNT(*) as cnt FROM memory_items GROUP BY scope_tenant").all() as Array<{ tenant: string; cnt: number }>;
+      const itemsByTenant: Record<string, number> = {};
+      for (const r of tenantRows) itemsByTenant[r.tenant] = r.cnt;
+
+      return { totalItems: total, checkpointCount: cpCount, itemsByType, itemsByTenant };
+    },
+
     async checkpoint(description?: string): Promise<Checkpoint> {
       const cpId = `cp_${Date.now()}_${++idCounter}`;
       const now = new Date().toISOString();
