@@ -1,5 +1,5 @@
 import type { AuditEvent } from "@lattice-kernel/schemas";
-import type { AuditSink, AuditQueryFilter } from "./types.js";
+import type { AuditSink, AuditQueryFilter, AuditQueryResult } from "./types.js";
 
 export interface MemoryAuditSinkOptions {
   maxEvents?: number;
@@ -19,17 +19,27 @@ export function createMemoryAuditSink(
       }
     },
 
-    async query(filter: AuditQueryFilter): Promise<AuditEvent[]> {
-      let results = events;
+    async query(filter: AuditQueryFilter): Promise<AuditQueryResult> {
+      let results: AuditEvent[] = events;
 
       if (filter.requestId) {
         results = results.filter((e) => e.requestId === filter.requestId);
+      }
+      if (filter.traceId) {
+        results = results.filter(
+          (e) =>
+            e.requestId.includes(filter.traceId!) ||
+            (e as Record<string, unknown>).traceId === filter.traceId,
+        );
       }
       if (filter.type) {
         results = results.filter((e) => e.type === filter.type);
       }
       if (filter.actor) {
         results = results.filter((e) => e.actor === filter.actor);
+      }
+      if (filter.modelId) {
+        results = results.filter((e) => e.modelId === filter.modelId);
       }
       if (filter.scope) {
         results = results.filter((e) => scopeMatches(e.scope, filter.scope!));
@@ -40,9 +50,24 @@ export function createMemoryAuditSink(
       if (filter.until) {
         results = results.filter((e) => e.timestamp <= filter.until!);
       }
+      if (filter.hasError !== undefined) {
+        results = results.filter((e) =>
+          filter.hasError ? e.error !== undefined : e.error === undefined,
+        );
+      }
 
-      const limit = filter.limit ?? results.length;
-      return results.slice(-limit);
+      const total = results.length;
+      const offset = filter.offset ?? 0;
+      const limit = filter.limit ?? total;
+      const page = results.slice(offset, offset + limit);
+
+      return {
+        events: page,
+        total,
+        hasMore: offset + limit < total,
+        offset,
+        limit,
+      };
     },
 
     async flush(): Promise<void> {

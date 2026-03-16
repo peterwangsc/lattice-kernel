@@ -1,5 +1,5 @@
 import type { AuditEvent } from "@lattice-kernel/schemas";
-import type { AuditSink, AuditQueryFilter } from "./types.js";
+import type { AuditSink, AuditQueryFilter, AuditQueryResult } from "./types.js";
 
 export type LogWriter = (line: string) => void;
 
@@ -30,10 +30,8 @@ export function createJsonAuditSink(
       writer(line);
     },
 
-    async query(_filter: AuditQueryFilter): Promise<AuditEvent[]> {
-      // JSON sink is write-only; use CompositeAuditSink with
-      // MemoryAuditSink for query support
-      return [];
+    async query(_filter: AuditQueryFilter): Promise<AuditQueryResult> {
+      return { events: [], total: 0, hasMore: false, offset: 0, limit: 0 };
     },
 
     async flush(): Promise<void> {

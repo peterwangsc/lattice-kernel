@@ -1,5 +1,5 @@
 import type { AuditEvent } from "@lattice-kernel/schemas";
-import type { AuditSink, AuditQueryFilter } from "./types.js";
+import type { AuditSink, AuditQueryFilter, AuditQueryResult } from "./types.js";
 
 /**
  * Fans out audit events to multiple sinks. Queries are served from the
@@ -16,7 +16,7 @@ export function createCompositeAuditSink(sinks: AuditSink[]): AuditSink {
       await Promise.all(sinks.map((s) => s.emit(event)));
     },
 
-    async query(filter: AuditQueryFilter): Promise<AuditEvent[]> {
+    async query(filter: AuditQueryFilter): Promise<AuditQueryResult> {
       return sinks[0]!.query(filter);
     },
 

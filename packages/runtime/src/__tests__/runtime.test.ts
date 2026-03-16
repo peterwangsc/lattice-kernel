@@ -95,7 +95,7 @@ describe("Runtime", () => {
         trustLevel: "trusted_user_explicit",
       });
 
-      const events = await auditSink.query({ type: "infer" });
+      const { events } = await auditSink.query({ type: "infer" });
       expect(events).toHaveLength(1);
       expect(events[0]!.route).toBe("test-local");
       expect(events[0]!.error).toBeUndefined();
@@ -116,7 +116,7 @@ describe("Runtime", () => {
         }),
       ).rejects.toThrow("Policy denied");
 
-      const events = await auditSink.query({ type: "infer" });
+      const { events } = await auditSink.query({ type: "infer" });
       expect(events).toHaveLength(1);
       expect(events[0]!.error).toBeTruthy();
     });
@@ -320,7 +320,7 @@ describe("Runtime", () => {
         trustLevel: "trusted_user_explicit",
       });
 
-      const events = await auditSink.query({ type: "embed" });
+      const { events } = await auditSink.query({ type: "embed" });
       expect(events).toHaveLength(1);
     });
 
@@ -428,7 +428,7 @@ describe("Runtime", () => {
         trustLevel: "trusted_user_explicit",
       });
 
-      const events = await auditSink.query({ type: "plan" });
+      const { events } = await auditSink.query({ type: "plan" });
       expect(events).toHaveLength(1);
     });
 
@@ -500,7 +500,7 @@ describe("Runtime", () => {
         trustLevel: "trusted_user_explicit",
       });
 
-      const events = await auditSink.query({ type: "act" });
+      const { events } = await auditSink.query({ type: "act" });
       expect(events).toHaveLength(1);
     });
 
@@ -625,7 +625,7 @@ describe("Runtime", () => {
         // drain
       }
 
-      const events = await auditSink.query({ type: "infer" });
+      const { events } = await auditSink.query({ type: "infer" });
       expect(events.length).toBeGreaterThan(0);
     });
 

@@ -47,7 +47,8 @@ describe("JsonAuditSink", () => {
     await sink.emit(makeEvent());
 
     const results = await sink.query({});
-    expect(results).toEqual([]);
+    expect(results.events).toEqual([]);
+    expect(results.total).toBe(0);
   });
 
   it("writes multiple events as separate lines", async () => {
