@@ -7,6 +7,9 @@
   "include": ["src"],
   "references": [
     { "path": "../schemas" },
-    { "path": "../runtime" }
+    { "path": "../runtime" },
+    { "path": "../policy-engine" },
+    { "path": "../audit" },
+    { "path": "../memory" }
   ]
 }

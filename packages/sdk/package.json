@@ -16,11 +16,14 @@
     "typecheck": "tsc --noEmit",
     "clean": "rm -rf dist *.tsbuildinfo",
     "lint": "echo 'no linter configured yet'",
-    "test": "echo 'no tests configured yet'"
+    "test": "vitest run"
   },
   "dependencies": {
     "@lattice-kernel/schemas": "workspace:*",
-    "@lattice-kernel/runtime": "workspace:*"
+    "@lattice-kernel/runtime": "workspace:*",
+    "@lattice-kernel/policy-engine": "workspace:*",
+    "@lattice-kernel/audit": "workspace:*",
+    "@lattice-kernel/memory": "workspace:*"
   },
   "devDependencies": {
     "typescript": "^5.7.0"
