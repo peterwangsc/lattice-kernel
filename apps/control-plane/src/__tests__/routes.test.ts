@@ -10,6 +10,7 @@ import { registerPolicyRoutes } from "../routes/policies.js";
 import { registerAuditRoutes } from "../routes/audit.js";
 import { registerMetricsRoutes } from "../routes/metrics.js";
 import { registerMemoryRoutes } from "../routes/memory.js";
+import { registerCheckpointRoutes } from "../routes/checkpoints.js";
 import { registerOpenApiRoutes } from "../routes/openapi.js";
 import { createPolicyEngine } from "@lattice-kernel/policy-engine";
 import { createMemoryAuditSink } from "@lattice-kernel/audit";
@@ -542,6 +543,92 @@ describe("Control Plane Routes", () => {
 
       expect(res.statusCode).toBe(200);
       expect(store.count()).toBe(0);
+    });
+  });
+
+  describe("checkpoints", () => {
+    function createTestMemoryStore() {
+      const engine = createPolicyEngine({ defaultDeny: false });
+      const audit = createMemoryAuditSink();
+      return createMemoryStore({ policyEngine: engine, auditSink: audit });
+    }
+
+    it("creates and lists checkpoints", async () => {
+      const router = createRouter();
+      const store = createTestMemoryStore();
+      registerCheckpointRoutes(router, store);
+
+      // Create
+      const createReq = mockReq("POST", "/api/v1/checkpoints", JSON.stringify({ description: "test cp" }));
+      const createRes = mockRes();
+      await router.handle(createReq, createRes);
+      expect(createRes.statusCode).toBe(201);
+
+      // List
+      const listReq = mockReq("GET", "/api/v1/checkpoints");
+      const listRes = mockRes();
+      await router.handle(listReq, listRes);
+      expect(listRes.statusCode).toBe(200);
+      const body = parseBody(listRes) as Record<string, unknown>;
+      expect(body.count).toBe(1);
+    });
+
+    it("rolls back to checkpoint", async () => {
+      const router = createRouter();
+      const store = createTestMemoryStore();
+      registerCheckpointRoutes(router, store);
+      registerMemoryRoutes(router, store);
+
+      await store.write({
+        scope: {}, type: "semantic", content: "original",
+        source: "test", provenance: {}, classification: "internal",
+        trustLevel: "trusted_user_explicit",
+      });
+      const cp = await store.checkpoint("safe");
+
+      await store.write({
+        scope: {}, type: "semantic", content: "added",
+        source: "test", provenance: {}, classification: "internal",
+        trustLevel: "trusted_user_explicit",
+      });
+      expect(store.count()).toBe(2);
+
+      const req = mockReq("POST", `/api/v1/checkpoints/${cp.checkpointId}/rollback`);
+      const res = mockRes();
+      await router.handle(req, res);
+      expect(res.statusCode).toBe(200);
+      expect(store.count()).toBe(1);
+    });
+
+    it("returns 404 for invalid rollback", async () => {
+      const router = createRouter();
+      const store = createTestMemoryStore();
+      registerCheckpointRoutes(router, store);
+
+      const req = mockReq("POST", "/api/v1/checkpoints/invalid/rollback");
+      const res = mockRes();
+      await router.handle(req, res);
+      expect(res.statusCode).toBe(404);
+    });
+
+    it("verifies checkpoint integrity", async () => {
+      const router = createRouter();
+      const store = createTestMemoryStore();
+      registerCheckpointRoutes(router, store);
+
+      await store.write({
+        scope: {}, type: "semantic", content: "data",
+        source: "test", provenance: {}, classification: "internal",
+        trustLevel: "trusted_user_explicit",
+      });
+      const cp = await store.checkpoint();
+
+      const req = mockReq("GET", `/api/v1/checkpoints/${cp.checkpointId}/verify`);
+      const res = mockRes();
+      await router.handle(req, res);
+      expect(res.statusCode).toBe(200);
+      const body = parseBody(res) as Record<string, unknown>;
+      expect(body.valid).toBe(true);
     });
   });
 });

@@ -13,6 +13,7 @@ import { registerAuditRoutes } from "./routes/audit.js";
 import { registerMetricsRoutes } from "./routes/metrics.js";
 import { registerOpenApiRoutes } from "./routes/openapi.js";
 import { registerMemoryRoutes } from "./routes/memory.js";
+import { registerCheckpointRoutes } from "./routes/checkpoints.js";
 import { cors } from "./middleware/cors.js";
 import { apiKeyAuth } from "./middleware/auth.js";
 import { rateLimit } from "./middleware/rate-limit.js";
@@ -50,6 +51,7 @@ registerAuditRoutes(router, auditSink);
 registerMetricsRoutes(router, policyEngine, auditSink);
 registerOpenApiRoutes(router);
 registerMemoryRoutes(router, memoryStore);
+registerCheckpointRoutes(router, memoryStore);
 
 // Middleware
 const logRequest = requestLogger();
