@@ -12,9 +12,13 @@ import type {
 import { AdapterError } from "@lattice-kernel/schemas";
 
 export interface OpenAIAdapterConfig {
-  apiKey: string;
+  /** API key. Optional for local servers that don't require auth. */
+  apiKey?: string;
+  /** Base URL. Defaults to https://api.openai.com. Set to your local server URL for local LLMs. */
   baseUrl?: string;
+  /** Default model ID. */
   defaultModel?: string;
+  /** OpenAI organization header (only for OpenAI's API). */
   organization?: string;
 }
 
@@ -100,8 +104,10 @@ export function createOpenAIAdapter(
   ): Promise<unknown> {
     const headers: Record<string, string> = {
       "Content-Type": "application/json",
-      Authorization: `Bearer ${config.apiKey}`,
     };
+    if (config.apiKey) {
+      headers["Authorization"] = `Bearer ${config.apiKey}`;
+    }
     if (config.organization) {
       headers["OpenAI-Organization"] = config.organization;
     }
@@ -149,7 +155,7 @@ export function createOpenAIAdapter(
   }
 
   return {
-    providerId: "cloud:openai",
+    providerId: baseUrl === DEFAULT_BASE_URL ? "cloud:openai" : `openai-compat:${new URL(baseUrl).host}`,
 
     async getCapabilities(): Promise<BackendCapabilities> {
       return {
@@ -224,8 +230,10 @@ export function createOpenAIAdapter(
 
       const headers: Record<string, string> = {
         "Content-Type": "application/json",
-        Authorization: `Bearer ${config.apiKey}`,
       };
+      if (config.apiKey) {
+        headers["Authorization"] = `Bearer ${config.apiKey}`;
+      }
 
       const response = await fetch(`${baseUrl}/v1/chat/completions`, {
         method: "POST",

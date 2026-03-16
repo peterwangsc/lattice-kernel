@@ -37,10 +37,16 @@ pnpm test
 
 ```typescript
 import { createLattice } from "@lattice-kernel/sdk";
-import { createAnthropicAdapter } from "@lattice-kernel/adapter-cloud";
+import { createOpenAIAdapter, createAnthropicAdapter } from "@lattice-kernel/adapter-cloud";
+
+// Works with any OpenAI-compatible API:
+// - OpenAI: createOpenAIAdapter({ apiKey: "sk-..." })
+// - Local LLM (Ollama, vLLM, LM Studio): createOpenAIAdapter({ baseUrl: "http://localhost:11434" })
+// - Any cloud API: createOpenAIAdapter({ baseUrl: "https://your-api.com", apiKey: "..." })
+// - Anthropic: createAnthropicAdapter({ apiKey: "sk-ant-..." })
 
 const lattice = createLattice({
-  adapters: [createAnthropicAdapter({ apiKey: process.env.ANTHROPIC_API_KEY! })],
+  adapters: [createOpenAIAdapter({ baseUrl: "http://localhost:11434", defaultModel: "llama3" })],
   policyRules: [{
     id: "allow-infer",
     name: "Allow inference",
