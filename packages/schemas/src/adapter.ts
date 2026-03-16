@@ -12,16 +12,32 @@ export const BackendCapabilities = z.object({
 export type BackendCapabilities = z.infer<typeof BackendCapabilities>;
 
 export const Message = z.object({
-  role: z.enum(["user", "assistant"]),
+  role: z.enum(["user", "assistant", "tool_result"]),
   content: z.string(),
+  toolUseId: z.string().optional(),
 });
 export type Message = z.infer<typeof Message>;
+
+export const ToolDefinition = z.object({
+  name: z.string(),
+  description: z.string(),
+  inputSchema: z.record(z.unknown()),
+});
+export type ToolDefinition = z.infer<typeof ToolDefinition>;
+
+export const ToolUseRequest = z.object({
+  id: z.string(),
+  name: z.string(),
+  input: z.record(z.unknown()),
+});
+export type ToolUseRequest = z.infer<typeof ToolUseRequest>;
 
 export const InferRequest = z.object({
   modelId: z.string(),
   input: z.string(),
   messages: z.array(Message).optional(),
   systemPrompt: z.string().optional(),
+  tools: z.array(ToolDefinition).optional(),
   maxTokens: z.number().optional(),
   temperature: z.number().optional(),
   stopSequences: z.array(z.string()).optional(),
@@ -33,6 +49,8 @@ export const InferResponse = z.object({
   modelId: z.string(),
   tokensUsed: z.number().optional(),
   durationMs: z.number(),
+  toolUseRequests: z.array(ToolUseRequest).optional(),
+  stopReason: z.enum(["end_turn", "max_tokens", "tool_use", "stop_sequence"]).optional(),
 });
 export type InferResponse = z.infer<typeof InferResponse>;
 

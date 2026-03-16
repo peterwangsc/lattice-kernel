@@ -157,6 +157,95 @@ describe("AnthropicAdapter", () => {
       expect(body.system).toBe("You are a helpful assistant.");
     });
 
+    it("sends tool definitions in request", async () => {
+      mockFetchSuccess();
+      const adapter = createAnthropicAdapter({ apiKey: "test-key" });
+
+      await adapter.infer({
+        modelId: "claude-sonnet-4-6",
+        input: "What's the weather?",
+        tools: [
+          {
+            name: "get_weather",
+            description: "Get current weather",
+            inputSchema: {
+              type: "object",
+              properties: { city: { type: "string" } },
+              required: ["city"],
+            },
+          },
+        ],
+      });
+
+      const body = JSON.parse(
+        (globalThis.fetch as ReturnType<typeof vi.fn>).mock.calls[0]![1]
+          .body as string,
+      );
+      expect(body.tools).toHaveLength(1);
+      expect(body.tools[0].name).toBe("get_weather");
+      expect(body.tools[0].input_schema.properties.city.type).toBe("string");
+    });
+
+    it("parses tool use response", async () => {
+      mockFetchSuccess({
+        id: "msg_123",
+        type: "message",
+        role: "assistant",
+        content: [
+          { type: "text", text: "Let me check the weather." },
+          {
+            type: "tool_use",
+            id: "toolu_123",
+            name: "get_weather",
+            input: { city: "San Francisco" },
+          },
+        ],
+        model: "claude-sonnet-4-6-20250514",
+        stop_reason: "tool_use",
+        usage: { input_tokens: 20, output_tokens: 15 },
+      });
+
+      const adapter = createAnthropicAdapter({ apiKey: "test-key" });
+      const result = await adapter.infer({
+        modelId: "claude-sonnet-4-6",
+        input: "What's the weather in SF?",
+      });
+
+      expect(result.stopReason).toBe("tool_use");
+      expect(result.toolUseRequests).toHaveLength(1);
+      expect(result.toolUseRequests![0]!.name).toBe("get_weather");
+      expect(result.toolUseRequests![0]!.input).toEqual({ city: "San Francisco" });
+      expect(result.toolUseRequests![0]!.id).toBe("toolu_123");
+      expect(result.output).toBe("Let me check the weather.");
+    });
+
+    it("sends tool_result messages in Anthropic format", async () => {
+      mockFetchSuccess();
+      const adapter = createAnthropicAdapter({ apiKey: "test-key" });
+
+      await adapter.infer({
+        modelId: "claude-sonnet-4-6",
+        input: "follow up",
+        messages: [
+          { role: "user", content: "What's the weather?" },
+          { role: "assistant", content: "Let me check." },
+          {
+            role: "tool_result",
+            content: '{"temp": 72}',
+            toolUseId: "toolu_123",
+          },
+        ],
+      });
+
+      const body = JSON.parse(
+        (globalThis.fetch as ReturnType<typeof vi.fn>).mock.calls[0]![1]
+          .body as string,
+      );
+      expect(body.messages[2].role).toBe("user");
+      expect(body.messages[2].content[0].type).toBe("tool_result");
+      expect(body.messages[2].content[0].tool_use_id).toBe("toolu_123");
+    });
+
     it("uses input as single user message when no messages provided", async () => {
       mockFetchSuccess();
       const adapter = createAnthropicAdapter({ apiKey: "test-key" });

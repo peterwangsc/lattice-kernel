@@ -55,8 +55,15 @@ interface AnthropicMessageResponse {
   id: string;
   type: string;
   role: string;
-  content: Array<{ type: string; text?: string }>;
+  content: Array<{
+    type: string;
+    text?: string;
+    id?: string;
+    name?: string;
+    input?: Record<string, unknown>;
+  }>;
   model: string;
+  stop_reason: string;
   usage: {
     input_tokens: number;
     output_tokens: number;
@@ -98,10 +105,24 @@ export function createAnthropicAdapter(
     request: InferRequest,
     model: string,
   ): Record<string, unknown> {
-    // Use messages array if provided, otherwise wrap input as single user message
+    // Build messages array — handle tool_result role specially for Anthropic
     const messages =
       request.messages && request.messages.length > 0
-        ? request.messages.map((m) => ({ role: m.role, content: m.content }))
+        ? request.messages.map((m) => {
+            if (m.role === "tool_result" && m.toolUseId) {
+              return {
+                role: "user",
+                content: [
+                  {
+                    type: "tool_result",
+                    tool_use_id: m.toolUseId,
+                    content: m.content,
+                  },
+                ],
+              };
+            }
+            return { role: m.role, content: m.content };
+          })
         : [{ role: "user", content: request.input }];
 
     const body: Record<string, unknown> = {
@@ -118,6 +139,13 @@ export function createAnthropicAdapter(
     }
     if (request.stopSequences && request.stopSequences.length > 0) {
       body.stop_sequences = request.stopSequences;
+    }
+    if (request.tools && request.tools.length > 0) {
+      body.tools = request.tools.map((t) => ({
+        name: t.name,
+        description: t.description,
+        input_schema: t.inputSchema,
+      }));
     }
 
     return body;
@@ -155,11 +183,34 @@ export function createAnthropicAdapter(
       const textContent = result.content.find((c) => c.type === "text");
       const output = textContent?.text ?? "";
 
+      // Extract tool use requests
+      const toolUseBlocks = result.content.filter(
+        (c) => c.type === "tool_use",
+      );
+      const toolUseRequests =
+        toolUseBlocks.length > 0
+          ? toolUseBlocks.map((c) => ({
+              id: c.id!,
+              name: c.name!,
+              input: c.input ?? {},
+            }))
+          : undefined;
+
+      // Map Anthropic stop reasons to our enum
+      const stopReasonMap: Record<string, "end_turn" | "max_tokens" | "tool_use" | "stop_sequence"> = {
+        end_turn: "end_turn",
+        max_tokens: "max_tokens",
+        tool_use: "tool_use",
+        stop_sequence: "stop_sequence",
+      };
+
       return {
         output,
         modelId: result.model,
         tokensUsed: result.usage.input_tokens + result.usage.output_tokens,
         durationMs: Date.now() - startMs,
+        toolUseRequests,
+        stopReason: stopReasonMap[result.stop_reason],
       };
     },
 
