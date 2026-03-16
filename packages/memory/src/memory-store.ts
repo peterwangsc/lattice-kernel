@@ -1,4 +1,4 @@
-import type { MemoryItem, ScopeRef, TrustLevel } from "@lattice-kernel/schemas";
+import type { MemoryItem, ScopeRef, TrustLevel, Checkpoint } from "@lattice-kernel/schemas";
 import type { MemoryStore, MemoryStoreConfig, MemoryWriteInput, RetrieveOptions } from "./types.js";
 
 const TRUST_ORDER: TrustLevel[] = [
@@ -36,6 +36,7 @@ function simpleHash(content: string): string {
 export function createMemoryStore(config: MemoryStoreConfig): MemoryStore {
   const { policyEngine, auditSink, maxItems = 100_000 } = config;
   const items = new Map<string, MemoryItem>();
+  const checkpoints = new Map<string, { snapshot: Map<string, MemoryItem>; meta: Checkpoint }>();
 
   return {
     async write(input: MemoryWriteInput): Promise<MemoryItem> {
@@ -222,6 +223,81 @@ export function createMemoryStore(config: MemoryStoreConfig): MemoryStore {
 
     count(): number {
       return items.size;
+    },
+
+    async checkpoint(description?: string): Promise<Checkpoint> {
+      const cpId = `cp_${Date.now()}_${++idCounter}`;
+      const now = new Date().toISOString();
+
+      // Deep clone the current items map
+      const snapshot = new Map<string, MemoryItem>();
+      for (const [id, item] of items) {
+        snapshot.set(id, { ...item });
+      }
+
+      // Hash the snapshot content for integrity
+      const contentHash = simpleHash(
+        [...snapshot.values()].map((i) => i.hash).join(",") + cpId,
+      );
+
+      const meta: Checkpoint = {
+        checkpointId: cpId,
+        target: "memory",
+        targetRef: "memory-store",
+        createdAt: now,
+        createdBy: "system",
+        description,
+        hash: contentHash,
+      };
+
+      checkpoints.set(cpId, { snapshot, meta });
+
+      await auditSink.emit({
+        eventId: `evt_${cpId}`,
+        type: "checkpoint",
+        requestId: cpId,
+        scope: {},
+        trustLevel: "trusted_system",
+        timestamp: now,
+        actor: "system",
+        policyDecisions: [],
+      });
+
+      return meta;
+    },
+
+    async rollback(checkpointId: string): Promise<void> {
+      const cp = checkpoints.get(checkpointId);
+      if (!cp) {
+        throw new Error(`Checkpoint not found: ${checkpointId}`);
+      }
+
+      // Restore state from snapshot
+      items.clear();
+      for (const [id, item] of cp.snapshot) {
+        items.set(id, { ...item });
+      }
+
+      await auditSink.emit({
+        eventId: `evt_rb_${checkpointId}`,
+        type: "rollback",
+        requestId: `rb_${Date.now()}`,
+        scope: {},
+        trustLevel: "trusted_system",
+        timestamp: new Date().toISOString(),
+        actor: "system",
+        policyDecisions: [],
+      });
+    },
+
+    listCheckpoints(): Checkpoint[] {
+      return [...checkpoints.values()]
+        .map((cp) => cp.meta)
+        .sort((a, b) => {
+          const timeCmp = b.createdAt.localeCompare(a.createdAt);
+          if (timeCmp !== 0) return timeCmp;
+          return b.checkpointId.localeCompare(a.checkpointId);
+        });
     },
   };
 }

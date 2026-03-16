@@ -1,4 +1,4 @@
-import type { MemoryItem, MemoryType, ScopeRef, TrustLevel } from "@lattice-kernel/schemas";
+import type { MemoryItem, MemoryType, ScopeRef, TrustLevel, Checkpoint } from "@lattice-kernel/schemas";
 import type { PolicyEngine } from "@lattice-kernel/policy-engine";
 import type { AuditSink } from "@lattice-kernel/audit";
 
@@ -9,6 +9,9 @@ export interface MemoryStore {
   delete(id: string): Promise<void>;
   expireStale(): Promise<number>;
   count(): number;
+  checkpoint(description?: string): Promise<Checkpoint>;
+  rollback(checkpointId: string): Promise<void>;
+  listCheckpoints(): Checkpoint[];
 }
 
 export interface MemoryWriteInput {

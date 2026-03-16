@@ -162,4 +162,82 @@ describe("MemoryStore", () => {
       expect(store.count()).toBe(1);
     });
   });
+
+  describe("checkpoint and rollback", () => {
+    it("creates a checkpoint with metadata", async () => {
+      await store.write(makeInput({ content: "fact 1" }));
+      const cp = await store.checkpoint("before changes");
+
+      expect(cp.checkpointId).toBeTruthy();
+      expect(cp.target).toBe("memory");
+      expect(cp.description).toBe("before changes");
+      expect(cp.hash).toBeTruthy();
+      expect(cp.createdAt).toBeTruthy();
+    });
+
+    it("rollback restores state to checkpoint", async () => {
+      await store.write(makeInput({ content: "original" }));
+      expect(store.count()).toBe(1);
+
+      const cp = await store.checkpoint();
+
+      // Make changes after checkpoint
+      await store.write(makeInput({ content: "added after" }));
+      await store.write(makeInput({ content: "also added" }));
+      expect(store.count()).toBe(3);
+
+      // Rollback
+      await store.rollback(cp.checkpointId);
+      expect(store.count()).toBe(1);
+
+      const results = await store.retrieve("original", {});
+      expect(results).toHaveLength(1);
+      expect(results[0]!.content).toBe("original");
+    });
+
+    it("rollback after delete restores deleted items", async () => {
+      const item = await store.write(makeInput({ content: "keep me" }));
+      const cp = await store.checkpoint();
+
+      await store.delete(item.id);
+      expect(store.count()).toBe(0);
+
+      await store.rollback(cp.checkpointId);
+      expect(store.count()).toBe(1);
+      expect(await store.get(item.id)).toBeDefined();
+    });
+
+    it("throws on rollback to nonexistent checkpoint", async () => {
+      await expect(store.rollback("nonexistent")).rejects.toThrow(
+        "Checkpoint not found",
+      );
+    });
+
+    it("listCheckpoints returns checkpoints newest first", async () => {
+      await store.checkpoint("first");
+      await store.checkpoint("second");
+      await store.checkpoint("third");
+
+      const cps = store.listCheckpoints();
+      expect(cps).toHaveLength(3);
+      expect(cps[0]!.description).toBe("third");
+      expect(cps[2]!.description).toBe("first");
+    });
+
+    it("can rollback multiple times to same checkpoint", async () => {
+      await store.write(makeInput({ content: "base" }));
+      const cp = await store.checkpoint();
+
+      // First mutation + rollback
+      await store.write(makeInput({ content: "extra1" }));
+      await store.rollback(cp.checkpointId);
+      expect(store.count()).toBe(1);
+
+      // Second mutation + rollback
+      await store.write(makeInput({ content: "extra2" }));
+      await store.write(makeInput({ content: "extra3" }));
+      await store.rollback(cp.checkpointId);
+      expect(store.count()).toBe(1);
+    });
+  });
 });
