@@ -41,6 +41,5 @@ export function createJsonAuditSink(
 }
 
 function defaultWriter(line: string): void {
-  // eslint-disable-next-line no-console
   process.stdout.write(line + "\n");
 }

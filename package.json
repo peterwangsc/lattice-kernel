@@ -1,6 +1,7 @@
 {
   "name": "lattice-kernel",
   "private": true,
+  "type": "module",
   "description": "Local adaptive AI runtime and enterprise control plane",
   "packageManager": "pnpm@10.12.1",
   "engines": {
@@ -9,11 +10,14 @@
   "scripts": {
     "build": "pnpm -r build",
     "test": "pnpm -r test",
-    "lint": "pnpm -r lint",
+    "lint": "eslint 'packages/*/src/**/*.ts' 'packages/adapters/*/src/**/*.ts' 'apps/*/src/**/*.ts'",
     "typecheck": "pnpm -r typecheck",
     "clean": "pnpm -r clean"
   },
   "devDependencies": {
+    "@eslint/js": "^10.0.1",
+    "eslint": "^10.0.3",
+    "typescript-eslint": "^8.57.0",
     "vitest": "^4.1.0"
   }
 }
