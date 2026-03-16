@@ -12,6 +12,23 @@ export function createSqliteAuditSink(
   const db = new Database(config.dbPath);
   db.pragma("journal_mode = WAL");
 
+  // Schema versioning
+  db.exec(`
+    CREATE TABLE IF NOT EXISTS schema_version (
+      component TEXT PRIMARY KEY,
+      version INTEGER NOT NULL,
+      updated_at TEXT NOT NULL
+    );
+  `);
+  const currentVersion = db.prepare(
+    "SELECT version FROM schema_version WHERE component = 'audit'"
+  ).get() as { version: number } | undefined;
+  if (!currentVersion) {
+    db.prepare(
+      "INSERT INTO schema_version (component, version, updated_at) VALUES ('audit', 1, ?)"
+    ).run(new Date().toISOString());
+  }
+
   db.exec(`
     CREATE TABLE IF NOT EXISTS audit_events (
       event_id TEXT PRIMARY KEY,

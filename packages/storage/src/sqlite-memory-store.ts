@@ -49,7 +49,24 @@ export function createSqliteMemoryStore(
   // Enable WAL mode for better concurrent read performance
   db.pragma("journal_mode = WAL");
 
-  // Create tables
+  // Schema versioning for future migrations
+  db.exec(`
+    CREATE TABLE IF NOT EXISTS schema_version (
+      component TEXT PRIMARY KEY,
+      version INTEGER NOT NULL,
+      updated_at TEXT NOT NULL
+    );
+  `);
+  const currentVersion = db.prepare(
+    "SELECT version FROM schema_version WHERE component = 'memory'"
+  ).get() as { version: number } | undefined;
+  if (!currentVersion) {
+    db.prepare(
+      "INSERT INTO schema_version (component, version, updated_at) VALUES ('memory', 1, ?)"
+    ).run(new Date().toISOString());
+  }
+
+  // Create tables (v1 schema)
   db.exec(`
     CREATE TABLE IF NOT EXISTS memory_items (
       id TEXT PRIMARY KEY,
