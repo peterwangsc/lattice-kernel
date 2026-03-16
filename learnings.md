@@ -1,5 +1,36 @@
 # Learnings: Local Adaptive AI Runtime and Control Plane
 
+## Iteration 9 (2026-03-16)
+
+### What was built
+- **Tool use (function calling)**: `ToolDefinition`, `ToolUseRequest` types. `InferRequest.tools` for model tool access. `InferResponse.toolUseRequests` and `stopReason` for model tool calls. Anthropic adapter: sends tools as `input_schema`, parses `tool_use` content blocks, handles `tool_result` messages in Anthropic's nested format. 3 new tests
+- **Conversation session management**: `ConversationManager` with create/get/delete/list. `Conversation` tracks user, assistant, and tool_result messages. Configurable maxMessages with FIFO eviction. 10 new tests
+- **Rate limiter adapter**: `createRateLimitedAdapter` with sliding window (maxRequests/windowMs). Rate limits infer, embed, streaming. Bypasses estimate and healthCheck. 5 new tests
+- **Total test count**: 195 unique tests across 7 packages, all passing
+
+### Architecture decisions made
+- **Tool definitions are generic JSON Schema**: `ToolDefinition.inputSchema` is `Record<string, unknown>` — the adapter maps it to provider-specific format (Anthropic's `input_schema`). This keeps the schema layer provider-agnostic
+- **tool_result as a Message role**: Rather than a separate tool result type, tool results are messages with `role: "tool_result"` and a `toolUseId` field. The Anthropic adapter maps this to Anthropic's nested `user` message with `tool_result` content blocks
+- **stopReason enum is generic**: Maps provider-specific stop reasons (Anthropic's `end_turn`, `tool_use`, etc.) to a common enum. This lets the runtime make decisions based on stop reason without knowing which provider returned it
+- **Rate limiter doesn't limit metadata operations**: `estimate()` and `healthCheck()` bypass the rate limiter since they're lightweight metadata calls that shouldn't count against inference quotas
+- **Conversation maxMessages uses FIFO**: When the limit is reached, the oldest message is dropped. This keeps recent context while bounding memory. More sophisticated windowing (e.g., keep system prompt + last N) would be a future enhancement
+
+### Technical notes
+- The Anthropic adapter's `buildRequestBody` now handles three message formats: plain user/assistant, tool_result (wrapped in user message with nested content), and the input-only fallback
+- Conversation.getMessages() returns a copy to prevent external mutation of the internal state
+- Rate limiter uses a simple timestamp array — for high-throughput scenarios, a token bucket algorithm would be more efficient
+- `vi.useFakeTimers()` and `vi.advanceTimersByTimeAsync()` are essential for testing time-dependent rate limiting without slow tests
+
+### What's next (suggested)
+- Control plane REST API for policy/audit management
+- OpenTelemetry trace context propagation
+- Expose ConversationManager and rate limiter through SDK
+- Tool execution loop: infer → tool_use → execute tool → tool_result → infer
+- Prompt template system for reusable prompt patterns
+- Persistent conversation storage (currently in-memory only)
+
+---
+
 ## Iteration 8 (2026-03-16)
 
 ### What was built
