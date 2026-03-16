@@ -1,5 +1,35 @@
 # Learnings: Local Adaptive AI Runtime and Control Plane
 
+## Iteration 6 (2026-03-16)
+
+### What was built
+- **Composite adapter**: Implements the local-first principle — tries adapters in priority order, falls back on error. Merges capabilities (OR logic), deduplicates models. 11 tests
+- **Retention enforcement**: Duration parser for retentionPolicy strings (30s, 5m, 2h, 180d). Auto-computes expiresAt at write time. expireStale() enforces retention. 7 tests
+- **Model-aware routing**: Runtime now consults the model registry when a specific model is requested, routing to the adapter that owns that model. Lazy initialization. 1 new test
+- **Total test count**: 158 unique tests across 7 packages, all passing
+
+### Architecture decisions made
+- **Composite adapter uses try-in-order for infer/embed**: Each adapter is tried sequentially. On error, the next adapter is tried. This is simpler than health-check-first and handles transient failures that a health check wouldn't catch
+- **Capabilities merge with OR logic**: The composite reports a capability as supported if ANY child adapter supports it. This makes the composite appear as capable as the union of its children
+- **Lazy model registry**: The registry is initialized on first model-specific request, not at runtime creation. This avoids unnecessary async work when models aren't specified by name
+- **Retention = auto-expiresAt**: Rather than a separate retention enforcement mechanism, retentionPolicy is simply converted to an expiresAt timestamp at write time. This means expireStale() handles both explicit and retention-based expiration uniformly
+- **Explicit expiresAt wins over retentionPolicy**: If both are provided, the explicit value is used. This allows manual override of automatic retention
+
+### Technical notes
+- `vi.useFakeTimers()` + `vi.setSystemTime()` is required for time-dependent tests — `vi.spyOn(Date, 'now')` doesn't affect `new Date().toISOString()`
+- The composite adapter's `tryInOrder` returns the last error when all adapters fail, giving the most recent failure context
+- Duration parsing is intentionally simple (single regex) since the Duration zod type already validates the format at the schema boundary
+
+### What's next (suggested)
+- Control plane REST API for policy management and audit querying
+- OpenTelemetry integration for distributed tracing
+- More adapter implementations: OpenAI, local llama.cpp
+- Add adapter-level cost/latency awareness to route selection
+- Approval workflow for policy-gated operations (currently throws)
+- Streaming inference support in the adapter contract
+
+---
+
 ## Iteration 5 (2026-03-16)
 
 ### What was built
