@@ -154,6 +154,40 @@ describe("OpenAIAdapter", () => {
       ).rejects.toThrow("OpenAI API error (429)");
     });
 
+    it("works without apiKey for local servers", async () => {
+      mockFetchSuccess();
+      const adapter = createOpenAIAdapter({
+        baseUrl: "http://localhost:11434",
+        defaultModel: "llama3",
+      });
+
+      await adapter.infer({ modelId: "llama3", input: "test" });
+
+      const headers = (globalThis.fetch as ReturnType<typeof vi.fn>).mock.calls[0]![1].headers;
+      expect(headers["Authorization"]).toBeUndefined();
+      expect(headers["Content-Type"]).toBe("application/json");
+    });
+
+    it("uses custom baseUrl", async () => {
+      mockFetchSuccess();
+      const adapter = createOpenAIAdapter({
+        baseUrl: "http://localhost:8000",
+      });
+
+      await adapter.infer({ modelId: "default", input: "test" });
+
+      expect(
+        (globalThis.fetch as ReturnType<typeof vi.fn>).mock.calls[0]![0],
+      ).toBe("http://localhost:8000/v1/chat/completions");
+    });
+
+    it("providerId reflects custom endpoint", () => {
+      const adapter = createOpenAIAdapter({
+        baseUrl: "http://localhost:11434",
+      });
+      expect(adapter.providerId).toBe("openai-compat:localhost:11434");
+    });
+
     it("sends organization header when configured", async () => {
       mockFetchSuccess();
       const adapter = createOpenAIAdapter({ apiKey: "test", organization: "org-123" });

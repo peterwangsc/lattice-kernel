@@ -21,22 +21,44 @@ import { createAnthropicAdapter, createOpenAIAdapter } from "@lattice-kernel/ada
 
 // --- Configuration ---
 const PROVIDER = process.env.PROVIDER ?? "anthropic";
+const BASE_URL = process.env.BASE_URL;
+const MODEL = process.env.MODEL;
 const API_KEY =
   process.env.ANTHROPIC_API_KEY ??
   process.env.OPENAI_API_KEY ??
+  process.env.API_KEY ??
   "";
 
-if (!API_KEY) {
-  console.error("Error: Set ANTHROPIC_API_KEY or OPENAI_API_KEY environment variable.");
-  console.error("Usage: ANTHROPIC_API_KEY=sk-... pnpm --filter @lattice-kernel/cli start");
+if (!API_KEY && !BASE_URL && PROVIDER === "anthropic") {
+  console.error("Set an API key or BASE_URL for a local server.");
+  console.error("");
+  console.error("Examples:");
+  console.error("  # Anthropic");
+  console.error("  ANTHROPIC_API_KEY=sk-ant-... pnpm --filter @lattice-kernel/cli start");
+  console.error("");
+  console.error("  # OpenAI");
+  console.error("  OPENAI_API_KEY=sk-... PROVIDER=openai pnpm --filter @lattice-kernel/cli start");
+  console.error("");
+  console.error("  # Local LLM (Ollama, vLLM, LM Studio)");
+  console.error("  BASE_URL=http://localhost:11434 MODEL=llama3 pnpm --filter @lattice-kernel/cli start");
   process.exit(1);
 }
 
 function createAdapter(): BackendAdapter {
-  if (PROVIDER === "openai") {
-    return createOpenAIAdapter({ apiKey: API_KEY, defaultModel: "gpt-4o" });
+  // Local/custom server via BASE_URL
+  if (BASE_URL) {
+    return createOpenAIAdapter({
+      baseUrl: BASE_URL,
+      apiKey: API_KEY || undefined,
+      defaultModel: MODEL ?? "default",
+    });
   }
-  return createAnthropicAdapter({ apiKey: API_KEY });
+  // OpenAI
+  if (PROVIDER === "openai") {
+    return createOpenAIAdapter({ apiKey: API_KEY, defaultModel: MODEL ?? "gpt-4o" });
+  }
+  // Anthropic (default)
+  return createAnthropicAdapter({ apiKey: API_KEY, defaultModel: MODEL });
 }
 
 const ALLOW_ALL: PolicyRule = {
@@ -65,7 +87,8 @@ const rl = readline.createInterface({
   output: process.stdout,
 });
 
-console.log(`Lattice Kernel CLI (${PROVIDER})`);
+const providerLabel = BASE_URL ? `${BASE_URL} (${MODEL ?? "default"})` : PROVIDER;
+console.log(`Lattice Kernel CLI (${providerLabel})`);
 console.log("Commands: /remember <text>, /recall <query>, /checkpoint, /rollback, /quit");
 console.log("---");
 
