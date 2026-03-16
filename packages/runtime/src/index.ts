@@ -4,6 +4,12 @@ export { createCompositeAdapter } from "./composite-adapter.js";
 export type { CompositeAdapterConfig } from "./composite-adapter.js";
 export { createRetryAdapter } from "./retry-adapter.js";
 export type { RetryConfig } from "./retry-adapter.js";
+export { createConversationManager } from "./conversation.js";
+export type {
+  Conversation,
+  ConversationManager,
+  ConversationManagerConfig,
+} from "./conversation.js";
 export type { ModelRegistry, ModelRegistryEntry } from "./model-registry.js";
 export type {
   RuntimeConfig,
