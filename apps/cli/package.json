@@ -12,13 +12,14 @@
     "typecheck": "tsc --noEmit",
     "clean": "rm -rf dist *.tsbuildinfo",
     "lint": "echo 'lint via root'",
-    "test": "echo 'no tests configured yet'"
+    "test": "vitest run"
   },
   "dependencies": {
     "@lattice-kernel/sdk": "workspace:*",
     "@lattice-kernel/schemas": "workspace:*",
     "@lattice-kernel/runtime": "workspace:*",
-    "@lattice-kernel/adapter-cloud": "workspace:*"
+    "@lattice-kernel/adapter-cloud": "workspace:*",
+    "@lattice-kernel/adapter-local": "workspace:*"
   },
   "devDependencies": {
     "@types/node": "^22.0.0",

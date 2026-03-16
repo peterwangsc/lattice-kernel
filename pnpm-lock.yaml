@@ -26,6 +26,9 @@ importers:
       '@lattice-kernel/adapter-cloud':
         specifier: workspace:*
         version: link:../../packages/adapters/adapter-cloud
+      '@lattice-kernel/adapter-local':
+        specifier: workspace:*
+        version: link:../../packages/adapters/adapter-local
       '@lattice-kernel/runtime':
         specifier: workspace:*
         version: link:../../packages/runtime
