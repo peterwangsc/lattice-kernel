@@ -12,13 +12,18 @@
     }
   },
   "scripts": {
+    "start": "node dist/index.js",
     "build": "tsc",
     "typecheck": "tsc --noEmit",
     "clean": "rm -rf dist *.tsbuildinfo",
     "lint": "echo 'no linter configured yet'",
     "test": "echo 'no tests configured yet'"
   },
-  "dependencies": {},
+  "dependencies": {
+    "@lattice-kernel/sdk": "workspace:*",
+    "@lattice-kernel/schemas": "workspace:*",
+    "@lattice-kernel/runtime": "workspace:*"
+  },
   "devDependencies": {
     "@types/node": "^22.0.0",
     "typescript": "^5.7.0"
