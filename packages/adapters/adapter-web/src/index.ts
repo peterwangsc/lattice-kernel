@@ -1,1 +1,2 @@
-export type { WebAdapter } from "./types.js";
+export type { WebAdapter, WebAdapterConfig } from "./types.js";
+export { createWebAdapter } from "./adapter.js";

@@ -1,1 +1,2 @@
-export type { LocalAdapter } from "./types.js";
+export type { LocalAdapter, LocalAdapterConfig } from "./types.js";
+export { createLocalAdapter } from "./adapter.js";
