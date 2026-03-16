@@ -1,5 +1,35 @@
 # Learnings: Local Adaptive AI Runtime and Control Plane
 
+## Iteration 23 (2026-03-16)
+
+### What was built
+- **Dockerfile**: Multi-stage build (builder + production) for control plane. SQLite data in `/data` volume. Configurable via env vars
+- **Vector scorer wired into retrieval**: Memory store now uses `textOverlapScore` from the vector scorer module instead of inline matching. Same behavior, cleaner separation
+- **Graceful shutdown**: SIGTERM/SIGINT handlers that close the server, wait for in-flight requests, force-exit after 5s timeout
+- **Total**: 329 tests, 91 commits
+
+### Deployment readiness
+The system is now deployable:
+- `docker build -t lattice-control-plane .` → builds production image
+- `docker run -p 3100:3100 -v lattice-data:/data -e API_KEYS=secret lattice-control-plane` → runs with persistent storage
+- Graceful shutdown handles SIGTERM (Docker stop) and SIGINT (Ctrl+C)
+- SQLite data persists in mounted volume
+- `.dockerignore` excludes dev artifacts (node_modules, dist, .git, DBs)
+
+### Architecture decisions made
+- **Multi-stage Docker build**: Builder stage has all dev deps and source. Production stage is minimal with only built artifacts. Reduces image size
+- **Volume for SQLite**: `/data/lattice.db` is the default DB path in Docker. Volume mount ensures data survives container restarts
+- **5-second shutdown timeout**: Balances graceful completion with deployment speed. Kubernetes sends SIGTERM and then SIGKILL after 30s by default, so 5s leaves plenty of margin
+
+### What's next (if continued)
+- Docker Compose with example configuration
+- Health check in Dockerfile (HEALTHCHECK instruction)
+- Embedding generation at memory write time
+- Multi-runtime agent coordination
+- WebSocket support for real-time audit streaming
+
+---
+
 ## Iteration 22 (2026-03-16)
 
 ### What was built
