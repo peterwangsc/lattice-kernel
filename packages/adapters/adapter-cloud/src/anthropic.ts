@@ -9,6 +9,7 @@ import type {
   ModelDescriptor,
   BackendAdapter,
 } from "@lattice-kernel/schemas";
+import { AdapterError } from "@lattice-kernel/schemas";
 
 export interface AnthropicAdapterConfig {
   apiKey: string;
@@ -93,8 +94,10 @@ export function createAnthropicAdapter(
 
     if (!response.ok) {
       const errorBody = await response.text();
-      throw new Error(
+      throw new AdapterError(
+        "cloud:anthropic",
         `Anthropic API error (${response.status}): ${errorBody}`,
+        response.status,
       );
     }
 
@@ -240,7 +243,7 @@ export function createAnthropicAdapter(
       }
 
       if (!response.body) {
-        throw new Error("No response body for streaming");
+        throw new AdapterError("cloud:anthropic", "No response body for streaming");
       }
 
       const reader = response.body.getReader();
@@ -297,7 +300,8 @@ export function createAnthropicAdapter(
     },
 
     async embed(_request: EmbedRequest): Promise<EmbedResponse> {
-      throw new Error(
+      throw new AdapterError(
+        "cloud:anthropic",
         "Anthropic does not provide an embedding API. Use a dedicated embedding provider.",
       );
     },

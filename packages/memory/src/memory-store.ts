@@ -1,4 +1,5 @@
 import type { MemoryItem, ScopeRef, TrustLevel, Checkpoint } from "@lattice-kernel/schemas";
+import { PolicyDeniedError, ApprovalRequiredError, CheckpointNotFoundError } from "@lattice-kernel/schemas";
 import type { MemoryStore, MemoryStoreConfig, MemoryWriteInput, RetrieveOptions, VerifyResult } from "./types.js";
 
 const TRUST_ORDER: TrustLevel[] = [
@@ -94,9 +95,7 @@ export function createMemoryStore(config: MemoryStoreConfig): MemoryStore {
           policyDecisions: decision.matchedRules,
           error: decision.reason ?? "Policy denied memory write",
         });
-        throw new Error(
-          `Policy denied memory write: ${decision.reason ?? "no reason"}`,
-        );
+        throw new PolicyDeniedError("memory write", decision.reason, decision.matchedRules);
       }
 
       // Step 5: Approval check (logged if required)
@@ -110,9 +109,9 @@ export function createMemoryStore(config: MemoryStoreConfig): MemoryStore {
           timestamp: new Date().toISOString(),
           actor: input.source,
           policyDecisions: decision.matchedRules,
-          error: "Memory write requires approval — not yet implemented",
+          error: "Memory write requires approval",
         });
-        throw new Error("Memory write requires approval");
+        throw new ApprovalRequiredError("memory write", decision.matchedRules);
       }
 
       // Steps 6-7: Generate hash and persist
@@ -304,7 +303,7 @@ export function createMemoryStore(config: MemoryStoreConfig): MemoryStore {
     async rollback(checkpointId: string): Promise<void> {
       const cp = checkpoints.get(checkpointId);
       if (!cp) {
-        throw new Error(`Checkpoint not found: ${checkpointId}`);
+        throw new CheckpointNotFoundError(checkpointId);
       }
 
       // Restore state from snapshot

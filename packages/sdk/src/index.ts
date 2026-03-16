@@ -27,6 +27,17 @@ export type {
   ToolUseRequest,
 } from "@lattice-kernel/schemas";
 
+// Re-export structured errors
+export {
+  LatticeError,
+  PolicyDeniedError,
+  ApprovalRequiredError,
+  AdapterError,
+  ToolNotFoundError,
+  CheckpointNotFoundError,
+  NoAdaptersError,
+} from "@lattice-kernel/schemas";
+
 // Re-export from runtime
 export type { ToolAdapter, ActResult, InferStreamResult } from "@lattice-kernel/runtime";
 export type {
@@ -41,6 +52,9 @@ export type {
   CompositeAdapterConfig,
   ModelRegistry,
   ModelRegistryEntry,
+  PromptTemplate,
+  PromptTemplateConfig,
+  PromptLibrary,
 } from "@lattice-kernel/runtime";
 export {
   createConversationManager,
@@ -48,5 +62,9 @@ export {
   createRetryAdapter,
   createRateLimitedAdapter,
   createModelRegistry,
+  createPromptTemplate,
+  createPromptLibrary,
+  createRequestContext,
+  createChildContext,
   runToolLoop,
 } from "@lattice-kernel/runtime";

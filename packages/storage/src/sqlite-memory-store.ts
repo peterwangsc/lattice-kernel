@@ -1,5 +1,6 @@
 import Database from "better-sqlite3";
 import type { MemoryItem, ScopeRef, TrustLevel, Checkpoint } from "@lattice-kernel/schemas";
+import { PolicyDeniedError, ApprovalRequiredError, CheckpointNotFoundError } from "@lattice-kernel/schemas";
 import type { MemoryStore, MemoryWriteInput, RetrieveOptions, VerifyResult } from "@lattice-kernel/memory";
 import type { PolicyEngine } from "@lattice-kernel/policy-engine";
 import type { AuditSink } from "@lattice-kernel/audit";
@@ -147,12 +148,10 @@ export function createSqliteMemoryStore(
       });
 
       if (!decision.allowed) {
-        throw new Error(
-          `Policy denied memory write: ${decision.reason ?? "no reason"}`,
-        );
+        throw new PolicyDeniedError("memory write", decision.reason, decision.matchedRules);
       }
       if (decision.requiresApproval) {
-        throw new Error("Memory write requires approval");
+        throw new ApprovalRequiredError("memory write", decision.matchedRules);
       }
 
       const id = `mem_${Date.now()}_${++idCounter}`;
@@ -365,7 +364,7 @@ export function createSqliteMemoryStore(
         .get(checkpointId) as Record<string, unknown> | undefined;
 
       if (!row) {
-        throw new Error(`Checkpoint not found: ${checkpointId}`);
+        throw new CheckpointNotFoundError(checkpointId);
       }
 
       const items = JSON.parse(row.snapshot as string) as MemoryItem[];
