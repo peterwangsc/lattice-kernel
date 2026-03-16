@@ -1,5 +1,33 @@
 # Learnings: Local Adaptive AI Runtime and Control Plane
 
+## Iteration 36 (2026-03-16)
+
+### What was built
+- **Checkpoint management REST endpoints**: create, list, rollback, verify via control plane. 4 new tests
+- **Total**: 389 tests, 130 commits, 16 REST endpoints
+
+### Control plane endpoints (complete, 16 total)
+| Method | Path | Description |
+|--------|------|-------------|
+| GET | /health | System health |
+| GET | /api/v1/policies | List rules |
+| POST | /api/v1/policies | Add/update rule |
+| DELETE | /api/v1/policies/:id | Remove rule |
+| GET | /api/v1/audit | Query audit events |
+| GET | /api/v1/metrics | System metrics |
+| GET | /api/v1/openapi.json | OpenAPI spec |
+| GET | /api/v1/memory/stats | Memory statistics |
+| GET | /api/v1/memory | Retrieve items |
+| GET | /api/v1/memory/:id | Get item |
+| DELETE | /api/v1/memory/:id | Delete item |
+| POST | /api/v1/memory/expire | Trigger expiration |
+| GET | /api/v1/checkpoints | List checkpoints |
+| POST | /api/v1/checkpoints | Create checkpoint |
+| POST | /api/v1/checkpoints/:id/rollback | Rollback |
+| GET | /api/v1/checkpoints/:id/verify | Verify integrity |
+
+---
+
 ## Iteration 35 (2026-03-16)
 
 ### What was built
