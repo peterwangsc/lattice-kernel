@@ -1,5 +1,35 @@
 # Learnings: Local Adaptive AI Runtime and Control Plane
 
+## Iteration 41 (2026-03-16)
+
+### What was built
+- **Sandbox demo smoke tests**: 4 tests (inference, conversation, templates, error handling)
+- **CLI smoke tests**: 2 tests (local stub adapter, memory round-trip)
+- **Zero "no tests configured" remaining** — every package and app has tests
+- **Total**: 398 tests across 15 suites, 143 commits
+
+### Final test distribution
+| Package/App | Tests |
+|-------------|-------|
+| schemas | 8 |
+| policy-engine | 9 |
+| audit | 20 |
+| crypto | 11 |
+| memory | 82 |
+| runtime | 122 |
+| sdk | 17 |
+| adapter-cloud | 36 |
+| adapter-local | 7 |
+| adapter-web | 7 |
+| storage | 37 |
+| tooling | 2 |
+| control-plane | 34 |
+| sandbox-demo | 4 |
+| cli | 2 |
+| **Total** | **398** |
+
+---
+
 ## Iteration 40 (2026-03-16)
 
 ### What was built
