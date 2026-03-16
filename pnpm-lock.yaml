@@ -21,7 +21,45 @@ importers:
         specifier: ^4.1.0
         version: 4.1.0(@types/node@22.19.15)(vite@8.0.0(@types/node@22.19.15))
 
+  apps/cli:
+    dependencies:
+      '@lattice-kernel/adapter-cloud':
+        specifier: workspace:*
+        version: link:../../packages/adapters/adapter-cloud
+      '@lattice-kernel/runtime':
+        specifier: workspace:*
+        version: link:../../packages/runtime
+      '@lattice-kernel/schemas':
+        specifier: workspace:*
+        version: link:../../packages/schemas
+      '@lattice-kernel/sdk':
+        specifier: workspace:*
+        version: link:../../packages/sdk
+    devDependencies:
+      '@types/node':
+        specifier: ^22.0.0
+        version: 22.19.15
+      typescript:
+        specifier: ^5.7.0
+        version: 5.9.3
+
   apps/control-plane:
+    dependencies:
+      '@lattice-kernel/audit':
+        specifier: workspace:*
+        version: link:../../packages/audit
+      '@lattice-kernel/memory':
+        specifier: workspace:*
+        version: link:../../packages/memory
+      '@lattice-kernel/policy-engine':
+        specifier: workspace:*
+        version: link:../../packages/policy-engine
+      '@lattice-kernel/schemas':
+        specifier: workspace:*
+        version: link:../../packages/schemas
+      '@lattice-kernel/storage':
+        specifier: workspace:*
+        version: link:../../packages/storage
     devDependencies:
       '@types/node':
         specifier: ^22.0.0
@@ -148,6 +186,12 @@ importers:
         specifier: workspace:*
         version: link:../schemas
     devDependencies:
+      '@lattice-kernel/adapter-cloud':
+        specifier: workspace:*
+        version: link:../adapters/adapter-cloud
+      '@lattice-kernel/adapter-local':
+        specifier: workspace:*
+        version: link:../adapters/adapter-local
       '@types/node':
         specifier: ^22.0.0
         version: 22.19.15
@@ -208,6 +252,12 @@ importers:
         specifier: ^12.8.0
         version: 12.8.0
     devDependencies:
+      '@lattice-kernel/crypto':
+        specifier: workspace:*
+        version: link:../crypto
+      '@lattice-kernel/runtime':
+        specifier: workspace:*
+        version: link:../runtime
       '@types/better-sqlite3':
         specifier: ^7.6.13
         version: 7.6.13
@@ -219,7 +269,29 @@ importers:
         version: 5.9.3
 
   packages/tooling:
+    dependencies:
+      '@lattice-kernel/audit':
+        specifier: workspace:*
+        version: link:../audit
+      '@lattice-kernel/crypto':
+        specifier: workspace:*
+        version: link:../crypto
+      '@lattice-kernel/memory':
+        specifier: workspace:*
+        version: link:../memory
+      '@lattice-kernel/policy-engine':
+        specifier: workspace:*
+        version: link:../policy-engine
+      '@lattice-kernel/runtime':
+        specifier: workspace:*
+        version: link:../runtime
+      '@lattice-kernel/schemas':
+        specifier: workspace:*
+        version: link:../schemas
     devDependencies:
+      '@types/node':
+        specifier: ^22.0.0
+        version: 22.19.15
       typescript:
         specifier: ^5.7.0
         version: 5.9.3
