@@ -1,5 +1,36 @@
 # Learnings: Local Adaptive AI Runtime and Control Plane
 
+## Iteration 11 (2026-03-16)
+
+### What was built
+- **Prompt template system**: `createPromptTemplate` with `{{variable}}` syntax, auto-extraction, missing variable validation. `createPromptLibrary` for template registry. `renderMessages()` returns system prompt + messages ready for infer. 11 new tests
+- **Request context propagation**: `createRequestContext` and `createChildContext` with traceId, spanId, parentSpanId for distributed tracing. Multi-level nesting support. 11 new tests
+- **Paginated audit queries**: `AuditQueryResult` with total count, hasMore flag, offset/limit pagination. New filters: traceId, modelId, hasError. All sinks and consumers updated. 4 new tests
+- **Total test count**: 228 unique tests across 7 packages
+
+### Architecture decisions made
+- **Prompt templates use {{mustache}} syntax**: Simple, well-known, no complex logic (no conditionals/loops). This matches the spec's "developer ergonomics matter" principle — templates should feel familiar
+- **PromptLibrary is separate from PromptTemplate**: Templates are standalone (can render without a library). The library is an optional registry for organization. This avoids coupling
+- **RequestContext generates IDs with crypto.randomBytes**: Not sequential counters — proper random IDs for distributed systems where multiple runtime instances may be running
+- **Child context inherits traceId, gets new spanId**: This is the standard distributed tracing pattern (OpenTelemetry-compatible). A trace contains many spans; child spans reference their parent
+- **AuditQueryResult replaces raw array**: Breaking change to the audit query API — now returns `{ events, total, hasMore, offset, limit }`. This is essential for any control plane UI that needs pagination
+
+### Technical notes
+- Prompt variable extraction runs at template creation time, not at render time — the `variables` property is immediately available for introspection
+- `createRequestContext` uses `node:crypto.randomBytes` for ID generation — hex-encoded for readability
+- The hasError filter checks `event.error !== undefined` which correctly distinguishes between missing (no error) and present (has error) fields
+- All audit query consumers (runtime tests, audit tests) updated from `const results = ...` to `const { events } = ...` destructuring
+
+### What's next (suggested)
+- Control plane REST API using the paginated audit queries
+- Wire RequestContext through runtime operations (attach to audit events)
+- Persistent storage backends (SQLite for embedded, Postgres for cloud)
+- Agent orchestration: multi-agent coordination with shared context
+- CI/CD with GitHub Actions for automated testing
+- ESLint/Prettier setup for code quality
+
+---
+
 ## Iteration 10 (2026-03-16)
 
 ### What was built
