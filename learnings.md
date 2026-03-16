@@ -1,5 +1,32 @@
 # Learnings: Local Adaptive AI Runtime and Control Plane
 
+## Iteration 39 (2026-03-16)
+
+### What was built
+- **Universal OpenAI-compatible adapter**: `createOpenAIAdapter` now works with any OpenAI-compatible endpoint — OpenAI, Ollama, vLLM, LM Studio, LocalAI, or any custom server. `apiKey` is optional (for local servers), `baseUrl` is configurable, `providerId` reflects the endpoint
+- **README updated**: Local LLM shown as primary usage pattern
+- **Total**: 389 tests, 139 commits
+
+### Connecting any LLM is now one line
+```ts
+// Local LLM (Ollama, vLLM, LM Studio)
+createOpenAIAdapter({ baseUrl: "http://localhost:11434", defaultModel: "llama3" })
+
+// Remote OpenAI-compatible API
+createOpenAIAdapter({ baseUrl: "https://your-api.com", apiKey: "sk-...", defaultModel: "model-name" })
+
+// OpenAI
+createOpenAIAdapter({ apiKey: "sk-..." })
+
+// Anthropic
+createAnthropicAdapter({ apiKey: "sk-ant-..." })
+```
+
+### Architecture decision
+- **One adapter for all OpenAI-compatible servers**: Rather than separate adapters for Ollama, vLLM, etc., the OpenAI adapter with configurable `baseUrl` covers them all since they all implement the same `/v1/chat/completions` protocol. This is the right abstraction level
+
+---
+
 ## Iteration 38 (2026-03-16)
 
 ### What was built
