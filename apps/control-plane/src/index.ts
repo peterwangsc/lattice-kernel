@@ -83,14 +83,23 @@ server.listen(PORT, () => {
   console.log(`Lattice Control Plane running on http://localhost:${PORT}`);
   console.log(`Database: ${DB_PATH}`);
   console.log(`Auth: ${API_KEYS.length > 0 ? "enabled" : "disabled (set API_KEYS to enable)"}`);
-  console.log("Endpoints:");
+  console.log("Endpoints (16):");
   console.log("  GET    /health");
   console.log("  GET    /api/v1/policies");
   console.log("  POST   /api/v1/policies");
   console.log("  DELETE /api/v1/policies/:ruleId");
-  console.log("  GET    /api/v1/audit?type=infer&limit=10&offset=0");
+  console.log("  GET    /api/v1/audit");
   console.log("  GET    /api/v1/metrics");
   console.log("  GET    /api/v1/openapi.json");
+  console.log("  GET    /api/v1/memory/stats");
+  console.log("  GET    /api/v1/memory");
+  console.log("  GET    /api/v1/memory/:id");
+  console.log("  DELETE /api/v1/memory/:id");
+  console.log("  POST   /api/v1/memory/expire");
+  console.log("  GET    /api/v1/checkpoints");
+  console.log("  POST   /api/v1/checkpoints");
+  console.log("  POST   /api/v1/checkpoints/:id/rollback");
+  console.log("  GET    /api/v1/checkpoints/:id/verify");
 });
 
 // Graceful shutdown

@@ -62,4 +62,7 @@ ENV DB_PATH=/data/lattice.db
 
 EXPOSE 3100
 
+HEALTHCHECK --interval=30s --timeout=5s --retries=3 \
+  CMD node -e "fetch('http://localhost:3100/health').then(r => process.exit(r.ok ? 0 : 1))"
+
 CMD ["node", "apps/control-plane/dist/index.js"]
