@@ -1,6 +1,7 @@
 import { describe, it, expect } from "vitest";
 import { createRouter, json } from "../router.js";
 import { cors } from "../middleware/cors.js";
+import { apiKeyAuth } from "../middleware/auth.js";
 import { registerHealthRoutes } from "../routes/health.js";
 import { registerPolicyRoutes } from "../routes/policies.js";
 import { registerAuditRoutes } from "../routes/audit.js";
@@ -254,6 +255,58 @@ describe("Control Plane Routes", () => {
       expect(res.headers["Access-Control-Allow-Origin"]).toBe(
         "https://dashboard.example.com",
       );
+    });
+  });
+
+  describe("auth", () => {
+    it("allows requests when no API keys configured (disabled)", () => {
+      const checkAuth = apiKeyAuth({ apiKeys: [] });
+      const req = mockReq("GET", "/api/v1/policies");
+      const res = mockRes();
+      expect(checkAuth(req, res)).toBe(false);
+    });
+
+    it("allows requests with valid Bearer token", () => {
+      const checkAuth = apiKeyAuth({ apiKeys: ["secret-key"] });
+      const req = mockReq("GET", "/api/v1/policies");
+      req.headers = { ...req.headers, authorization: "Bearer secret-key" };
+      const res = mockRes();
+      expect(checkAuth(req, res)).toBe(false);
+    });
+
+    it("allows requests with valid X-API-Key header", () => {
+      const checkAuth = apiKeyAuth({ apiKeys: ["secret-key"] });
+      const req = mockReq("GET", "/api/v1/policies");
+      req.headers = { ...req.headers, "x-api-key": "secret-key" };
+      const res = mockRes();
+      expect(checkAuth(req, res)).toBe(false);
+    });
+
+    it("rejects requests with invalid key", () => {
+      const checkAuth = apiKeyAuth({ apiKeys: ["secret-key"] });
+      const req = mockReq("GET", "/api/v1/policies");
+      req.headers = { ...req.headers, authorization: "Bearer wrong-key" };
+      const res = mockRes();
+      expect(checkAuth(req, res)).toBe(true);
+      expect(res.statusCode).toBe(401);
+    });
+
+    it("rejects requests with no key", () => {
+      const checkAuth = apiKeyAuth({ apiKeys: ["secret-key"] });
+      const req = mockReq("GET", "/api/v1/policies");
+      const res = mockRes();
+      expect(checkAuth(req, res)).toBe(true);
+      expect(res.statusCode).toBe(401);
+    });
+
+    it("skips auth for public paths", () => {
+      const checkAuth = apiKeyAuth({
+        apiKeys: ["secret-key"],
+        publicPaths: ["/health"],
+      });
+      const req = mockReq("GET", "/health");
+      const res = mockRes();
+      expect(checkAuth(req, res)).toBe(false);
     });
   });
 });

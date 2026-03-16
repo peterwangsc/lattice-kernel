@@ -11,11 +11,13 @@ import { registerHealthRoutes } from "./routes/health.js";
 import { registerPolicyRoutes } from "./routes/policies.js";
 import { registerAuditRoutes } from "./routes/audit.js";
 import { cors } from "./middleware/cors.js";
+import { apiKeyAuth } from "./middleware/auth.js";
 import { createPolicyEngine } from "@lattice-kernel/policy-engine";
 import { createSqliteAuditSink } from "@lattice-kernel/storage";
 
 const PORT = parseInt(process.env.PORT ?? "3100", 10);
 const DB_PATH = process.env.DB_PATH ?? "./lattice-control-plane.db";
+const API_KEYS = process.env.API_KEYS?.split(",").filter(Boolean) ?? [];
 
 // Initialize services
 const policyEngine = createPolicyEngine({ defaultDeny: true });
@@ -29,11 +31,13 @@ registerAuditRoutes(router, auditSink);
 
 // Middleware
 const applyCors = cors();
+const checkAuth = apiKeyAuth({ apiKeys: API_KEYS });
 
 // Start server
 const server = createServer(async (req, res) => {
   try {
     if (applyCors(req, res)) return; // Preflight handled
+    if (checkAuth(req, res)) return; // Unauthorized
     await router.handle(req, res);
   } catch (err) {
     res.writeHead(500, { "Content-Type": "application/json" });
