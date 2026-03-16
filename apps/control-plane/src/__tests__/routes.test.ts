@@ -9,9 +9,11 @@ import { registerHealthRoutes } from "../routes/health.js";
 import { registerPolicyRoutes } from "../routes/policies.js";
 import { registerAuditRoutes } from "../routes/audit.js";
 import { registerMetricsRoutes } from "../routes/metrics.js";
+import { registerMemoryRoutes } from "../routes/memory.js";
 import { registerOpenApiRoutes } from "../routes/openapi.js";
 import { createPolicyEngine } from "@lattice-kernel/policy-engine";
 import { createMemoryAuditSink } from "@lattice-kernel/audit";
+import { createMemoryStore } from "@lattice-kernel/memory";
 import type { IncomingMessage, ServerResponse } from "node:http";
 import { EventEmitter } from "node:events";
 
@@ -445,6 +447,101 @@ describe("Control Plane Routes", () => {
       const req = mockReq("GET", "/test");
       const res = mockRes();
       expect(logger(req, res)).toBe(false);
+    });
+  });
+
+  describe("memory", () => {
+    function createTestMemoryStore() {
+      const engine = createPolicyEngine({ defaultDeny: false });
+      const audit = createMemoryAuditSink();
+      return createMemoryStore({ policyEngine: engine, auditSink: audit });
+    }
+
+    it("returns memory stats", async () => {
+      const router = createRouter();
+      const store = createTestMemoryStore();
+      await store.write({
+        scope: { tenantId: "acme" }, type: "semantic", content: "test",
+        source: "test", provenance: {}, classification: "internal",
+        trustLevel: "trusted_user_explicit",
+      });
+      registerMemoryRoutes(router, store);
+
+      const req = mockReq("GET", "/api/v1/memory/stats");
+      const res = mockRes();
+      await router.handle(req, res);
+
+      expect(res.statusCode).toBe(200);
+      const body = parseBody(res) as Record<string, unknown>;
+      expect(body.totalItems).toBe(1);
+    });
+
+    it("retrieves memory items", async () => {
+      const router = createRouter();
+      const store = createTestMemoryStore();
+      await store.write({
+        scope: { tenantId: "acme" }, type: "semantic", content: "billing info",
+        source: "test", provenance: {}, classification: "internal",
+        trustLevel: "trusted_user_explicit",
+      });
+      registerMemoryRoutes(router, store);
+
+      const req = mockReq("GET", "/api/v1/memory?q=billing&tenantId=acme");
+      const res = mockRes();
+      await router.handle(req, res);
+
+      expect(res.statusCode).toBe(200);
+      const body = parseBody(res) as Record<string, unknown>;
+      expect((body.items as unknown[]).length).toBe(1);
+    });
+
+    it("gets a single item by ID", async () => {
+      const router = createRouter();
+      const store = createTestMemoryStore();
+      const item = await store.write({
+        scope: {}, type: "semantic", content: "specific item",
+        source: "test", provenance: {}, classification: "internal",
+        trustLevel: "trusted_user_explicit",
+      });
+      registerMemoryRoutes(router, store);
+
+      const req = mockReq("GET", `/api/v1/memory/${item.id}`);
+      const res = mockRes();
+      await router.handle(req, res);
+
+      expect(res.statusCode).toBe(200);
+      const body = parseBody(res) as Record<string, unknown>;
+      expect(body.content).toBe("specific item");
+    });
+
+    it("returns 404 for missing item", async () => {
+      const router = createRouter();
+      const store = createTestMemoryStore();
+      registerMemoryRoutes(router, store);
+
+      const req = mockReq("GET", "/api/v1/memory/nonexistent");
+      const res = mockRes();
+      await router.handle(req, res);
+
+      expect(res.statusCode).toBe(404);
+    });
+
+    it("deletes an item", async () => {
+      const router = createRouter();
+      const store = createTestMemoryStore();
+      const item = await store.write({
+        scope: {}, type: "semantic", content: "delete me",
+        source: "test", provenance: {}, classification: "internal",
+        trustLevel: "trusted_user_explicit",
+      });
+      registerMemoryRoutes(router, store);
+
+      const req = mockReq("DELETE", `/api/v1/memory/${item.id}`);
+      const res = mockRes();
+      await router.handle(req, res);
+
+      expect(res.statusCode).toBe(200);
+      expect(store.count()).toBe(0);
     });
   });
 });
