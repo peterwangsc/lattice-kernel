@@ -1,5 +1,19 @@
 # Learnings: Local Adaptive AI Runtime and Control Plane
 
+## Iteration 48 (2026-03-16)
+
+### What was built
+- **Schema versioning**: All 3 SQLite stores (memory, audit, policy) now track schema version in a `schema_version` table. Enables future migrations by checking version on startup
+- **Total**: 404 tests, 159 commits, 48 iterations
+
+### Schema migration strategy
+- Each component stores its version: `('memory', 1)`, `('audit', 1)`, `('policy', 1)`
+- On startup, check current version; if less than expected, run ALTER TABLE statements
+- Version is set on first use and idempotent on restart
+- All 3 stores share the same `schema_version` table (since they share a DB file)
+
+---
+
 ## Iteration 47 (2026-03-16)
 
 ### What was built
