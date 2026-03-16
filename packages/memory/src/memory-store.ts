@@ -17,6 +17,34 @@ function trustRank(level: TrustLevel): number {
 
 let idCounter = 0;
 
+/**
+ * Parse a duration string like "30s", "5m", "2h", "180d" into milliseconds.
+ */
+function parseDuration(duration: string): number {
+  const match = duration.match(/^(\d+)([smhd])$/);
+  if (!match) return 0;
+  const value = parseInt(match[1]!, 10);
+  const unit = match[2]!;
+  switch (unit) {
+    case "s": return value * 1000;
+    case "m": return value * 60 * 1000;
+    case "h": return value * 60 * 60 * 1000;
+    case "d": return value * 24 * 60 * 60 * 1000;
+    default: return 0;
+  }
+}
+
+function computeExpiresAt(
+  retentionPolicy: string | undefined,
+  explicitExpiresAt: string | undefined,
+): string | undefined {
+  if (explicitExpiresAt) return explicitExpiresAt;
+  if (!retentionPolicy) return undefined;
+  const durationMs = parseDuration(retentionPolicy);
+  if (durationMs <= 0) return undefined;
+  return new Date(Date.now() + durationMs).toISOString();
+}
+
 function simpleHash(content: string): string {
   let hash = 0;
   for (let i = 0; i < content.length; i++) {
@@ -102,7 +130,7 @@ export function createMemoryStore(config: MemoryStoreConfig): MemoryStore {
         classification: input.classification,
         trustLevel: input.trustLevel,
         createdAt: now,
-        expiresAt: input.expiresAt,
+        expiresAt: computeExpiresAt(input.retentionPolicy, input.expiresAt),
         retentionPolicy: input.retentionPolicy,
         subjectRefs: input.subjectRefs ?? [],
         tags: input.tags ?? [],
