@@ -1,0 +1,322 @@
+import { describe, it, expect, beforeEach } from "vitest";
+import { createRuntime } from "../runtime.js";
+import { createPolicyEngine } from "@lattice-kernel/policy-engine";
+import { createMemoryAuditSink } from "@lattice-kernel/audit";
+import type { BackendAdapter } from "@lattice-kernel/schemas";
+import type { Runtime } from "../types.js";
+
+function createMockAdapter(
+  overrides: Partial<BackendAdapter> & { providerId: string },
+): BackendAdapter {
+  return {
+    async getCapabilities() {
+      return {
+        supportsLocalExecution: true,
+        supportsCloudExecution: false,
+        supportsAdaptation: false,
+        supportedFormats: ["mock"],
+      };
+    },
+    async listModels() {
+      return [
+        {
+          id: "mock-model",
+          version: "1.0",
+          provider: "mock",
+          format: "mock",
+          capabilities: {
+            supportsEmbedding: true,
+            supportsToolCalling: false,
+            supportsAdaptation: false,
+            supportsMultimodal: false,
+          },
+          executionTargets: ["cpu"],
+          policyTags: [],
+        },
+      ];
+    },
+    async infer(request) {
+      return {
+        output: `mock response to: ${request.input}`,
+        modelId: request.modelId,
+        tokensUsed: 10,
+        durationMs: 1,
+      };
+    },
+    async embed(request) {
+      return {
+        embedding: [0.1, 0.2, 0.3],
+        modelId: request.modelId,
+        dimensions: 3,
+      };
+    },
+    async estimate() {
+      return { estimatedLatencyMs: 5, estimatedCost: 0 };
+    },
+    async healthCheck() {
+      return true;
+    },
+    ...overrides,
+  };
+}
+
+describe("Runtime", () => {
+  let runtime: Runtime;
+  let auditSink: ReturnType<typeof createMemoryAuditSink>;
+
+  beforeEach(() => {
+    const policyEngine = createPolicyEngine({ defaultDeny: false });
+    auditSink = createMemoryAuditSink();
+    const adapter = createMockAdapter({ providerId: "test-local" });
+    runtime = createRuntime({
+      adapters: [adapter],
+      policyEngine,
+      auditSink,
+    });
+  });
+
+  describe("infer", () => {
+    it("returns inference result with metadata", async () => {
+      const result = await runtime.infer({
+        input: "hello world",
+        trustLevel: "trusted_user_explicit",
+      });
+
+      expect(result.requestId).toBeTruthy();
+      expect(result.output).toContain("hello world");
+      expect(result.route).toBe("test-local");
+      expect(result.durationMs).toBeGreaterThanOrEqual(0);
+      expect(result.policyDecision.allowed).toBe(true);
+    });
+
+    it("emits audit event on successful infer", async () => {
+      await runtime.infer({
+        input: "test",
+        trustLevel: "trusted_user_explicit",
+      });
+
+      const events = await auditSink.query({ type: "infer" });
+      expect(events).toHaveLength(1);
+      expect(events[0]!.route).toBe("test-local");
+      expect(events[0]!.error).toBeUndefined();
+    });
+
+    it("throws and audits when policy denies", async () => {
+      const policyEngine = createPolicyEngine({ defaultDeny: true });
+      const deniedRuntime = createRuntime({
+        adapters: [createMockAdapter({ providerId: "test" })],
+        policyEngine,
+        auditSink,
+      });
+
+      await expect(
+        deniedRuntime.infer({
+          input: "blocked",
+          trustLevel: "trusted_user_explicit",
+        }),
+      ).rejects.toThrow("Policy denied");
+
+      const events = await auditSink.query({ type: "infer" });
+      expect(events).toHaveLength(1);
+      expect(events[0]!.error).toBeTruthy();
+    });
+
+    it("passes model and options to adapter", async () => {
+      const result = await runtime.infer({
+        input: "test",
+        model: "my-model",
+        trustLevel: "trusted_user_explicit",
+        maxTokens: 100,
+        temperature: 0.5,
+      });
+
+      expect(result.model).toBe("my-model");
+    });
+
+    it("throws when no adapters configured", async () => {
+      const policyEngine = createPolicyEngine({ defaultDeny: false });
+      const emptyRuntime = createRuntime({
+        adapters: [],
+        policyEngine,
+        auditSink,
+      });
+
+      await expect(
+        emptyRuntime.infer({
+          input: "test",
+          trustLevel: "trusted_user_explicit",
+        }),
+      ).rejects.toThrow("No adapters configured");
+    });
+  });
+
+  describe("route selection", () => {
+    it("selects local adapter when preference is local", async () => {
+      const localAdapter = createMockAdapter({ providerId: "local-1" });
+      const cloudAdapter = createMockAdapter({
+        providerId: "cloud-1",
+        async getCapabilities() {
+          return {
+            supportsLocalExecution: false,
+            supportsCloudExecution: true,
+            supportsAdaptation: false,
+            supportedFormats: [],
+          };
+        },
+      });
+
+      const policyEngine = createPolicyEngine({ defaultDeny: false });
+      const rt = createRuntime({
+        adapters: [cloudAdapter, localAdapter],
+        policyEngine,
+        auditSink,
+      });
+
+      const result = await rt.infer({
+        input: "test",
+        executionPreference: "local",
+        trustLevel: "trusted_user_explicit",
+      });
+      expect(result.route).toBe("local-1");
+    });
+
+    it("selects cloud adapter when preference is cloud", async () => {
+      const localAdapter = createMockAdapter({ providerId: "local-1" });
+      const cloudAdapter = createMockAdapter({
+        providerId: "cloud-1",
+        async getCapabilities() {
+          return {
+            supportsLocalExecution: false,
+            supportsCloudExecution: true,
+            supportsAdaptation: false,
+            supportedFormats: [],
+          };
+        },
+      });
+
+      const policyEngine = createPolicyEngine({ defaultDeny: false });
+      const rt = createRuntime({
+        adapters: [localAdapter, cloudAdapter],
+        policyEngine,
+        auditSink,
+      });
+
+      const result = await rt.infer({
+        input: "test",
+        executionPreference: "cloud",
+        trustLevel: "trusted_user_explicit",
+      });
+      expect(result.route).toBe("cloud-1");
+    });
+
+    it("falls back to first healthy adapter on auto", async () => {
+      const unhealthy = createMockAdapter({
+        providerId: "unhealthy",
+        async healthCheck() {
+          return false;
+        },
+        async getCapabilities() {
+          return {
+            supportsLocalExecution: false,
+            supportsCloudExecution: false,
+            supportsAdaptation: false,
+            supportedFormats: [],
+          };
+        },
+      });
+      const healthy = createMockAdapter({ providerId: "healthy" });
+
+      const policyEngine = createPolicyEngine({ defaultDeny: false });
+      const rt = createRuntime({
+        adapters: [unhealthy, healthy],
+        policyEngine,
+        auditSink,
+      });
+
+      const result = await rt.infer({
+        input: "test",
+        executionPreference: "auto",
+        trustLevel: "trusted_user_explicit",
+      });
+      expect(result.route).toBe("healthy");
+    });
+  });
+
+  describe("embed", () => {
+    it("returns embedding result", async () => {
+      const result = await runtime.embed({
+        content: "test content",
+        trustLevel: "trusted_user_explicit",
+      });
+
+      expect(result.requestId).toBeTruthy();
+      expect(result.embedding).toEqual([0.1, 0.2, 0.3]);
+      expect(result.dimensions).toBe(3);
+    });
+
+    it("emits audit event for embed", async () => {
+      await runtime.embed({
+        content: "test",
+        trustLevel: "trusted_user_explicit",
+      });
+
+      const events = await auditSink.query({ type: "embed" });
+      expect(events).toHaveLength(1);
+    });
+
+    it("throws when policy denies embed", async () => {
+      const policyEngine = createPolicyEngine({ defaultDeny: true });
+      const deniedRuntime = createRuntime({
+        adapters: [createMockAdapter({ providerId: "test" })],
+        policyEngine,
+        auditSink,
+      });
+
+      await expect(
+        deniedRuntime.embed({
+          content: "test",
+          trustLevel: "trusted_user_explicit",
+        }),
+      ).rejects.toThrow("Policy denied");
+    });
+  });
+
+  describe("listAvailableModels", () => {
+    it("aggregates models from all adapters", async () => {
+      const a1 = createMockAdapter({ providerId: "a1" });
+      const a2 = createMockAdapter({ providerId: "a2" });
+
+      const policyEngine = createPolicyEngine({ defaultDeny: false });
+      const rt = createRuntime({
+        adapters: [a1, a2],
+        policyEngine,
+        auditSink,
+      });
+
+      const models = await rt.listAvailableModels();
+      expect(models).toEqual(["mock-model", "mock-model"]);
+    });
+  });
+
+  describe("healthCheck", () => {
+    it("returns health status per adapter", async () => {
+      const healthy = createMockAdapter({ providerId: "ok" });
+      const unhealthy = createMockAdapter({
+        providerId: "down",
+        async healthCheck() {
+          return false;
+        },
+      });
+
+      const policyEngine = createPolicyEngine({ defaultDeny: false });
+      const rt = createRuntime({
+        adapters: [healthy, unhealthy],
+        policyEngine,
+        auditSink,
+      });
+
+      const status = await rt.healthCheck();
+      expect(status).toEqual({ ok: true, down: false });
+    });
+  });
+});
