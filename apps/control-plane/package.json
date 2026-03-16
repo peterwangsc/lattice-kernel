@@ -23,7 +23,8 @@
     "@lattice-kernel/schemas": "workspace:*",
     "@lattice-kernel/policy-engine": "workspace:*",
     "@lattice-kernel/audit": "workspace:*",
-    "@lattice-kernel/storage": "workspace:*"
+    "@lattice-kernel/storage": "workspace:*",
+    "@lattice-kernel/memory": "workspace:*"
   },
   "devDependencies": {
     "@types/node": "^22.0.0",

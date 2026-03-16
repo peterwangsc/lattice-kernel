@@ -12,6 +12,7 @@ import { registerPolicyRoutes } from "./routes/policies.js";
 import { registerAuditRoutes } from "./routes/audit.js";
 import { registerMetricsRoutes } from "./routes/metrics.js";
 import { registerOpenApiRoutes } from "./routes/openapi.js";
+import { registerMemoryRoutes } from "./routes/memory.js";
 import { cors } from "./middleware/cors.js";
 import { apiKeyAuth } from "./middleware/auth.js";
 import { rateLimit } from "./middleware/rate-limit.js";
@@ -19,6 +20,7 @@ import { createPolicyEngine } from "@lattice-kernel/policy-engine";
 import {
   createSqliteAuditSink,
   createSqlitePolicyStore,
+  createSqliteMemoryStore,
 } from "@lattice-kernel/storage";
 
 const PORT = parseInt(process.env.PORT ?? "3100", 10);
@@ -30,6 +32,7 @@ const RATE_LIMIT = parseInt(process.env.RATE_LIMIT ?? "0", 10);
 const policyEngine = createPolicyEngine({ defaultDeny: true });
 const auditSink = createSqliteAuditSink({ dbPath: DB_PATH });
 const policyStore = createSqlitePolicyStore({ dbPath: DB_PATH });
+const memoryStore = createSqliteMemoryStore({ dbPath: DB_PATH, policyEngine, auditSink });
 
 // Load persisted policy rules on startup
 policyStore.loadInto(policyEngine);
@@ -45,6 +48,7 @@ registerPolicyRoutes(router, policyEngine, policyStore);
 registerAuditRoutes(router, auditSink);
 registerMetricsRoutes(router, policyEngine, auditSink);
 registerOpenApiRoutes(router);
+registerMemoryRoutes(router, memoryStore);
 
 // Middleware
 const applyCors = cors();
