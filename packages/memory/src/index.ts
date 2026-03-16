@@ -13,3 +13,5 @@ export {
   createVectorScorer,
 } from "./vector-scorer.js";
 export type { VectorScorer } from "./vector-scorer.js";
+export { createEmbeddingMemoryStore } from "./embedding-store.js";
+export type { EmbedFunction } from "./embedding-store.js";
