@@ -1,5 +1,38 @@
 # Learnings: Local Adaptive AI Runtime and Control Plane
 
+## Iteration 3 (2026-03-16)
+
+### What was built
+- **Crypto integration**: Wired CryptoProvider into memory store — SHA-256 hashing when crypto is provided, falls back to simpleHash for lightweight use. 2 new tests
+- **Plan verb**: `runtime.plan()` creates structured Plans with intent, steps, dependencies, risk flags. Plans are always "draft" status (inspectable, not auto-executable). 4 tests
+- **Act verb**: `runtime.act()` executes tools through ToolAdapter interface under policy control. Supports plan references for traceability, approval gating. 5 tests
+- **JSON audit sink**: `createJsonAuditSink` for production observability — writes structured JSON lines with log level. Write-only, pair with CompositeAuditSink for querying. 4 tests
+- **Sandbox demo**: Full reference app demonstrating infer, remember, retrieve, checkpoint, rollback, dynamic policy. Runnable with `pnpm --filter @lattice-kernel/sandbox-demo start`
+- **Total test count**: 170 tests across 6 packages, all passing
+
+### Architecture decisions made
+- **ToolAdapter as simple interface**: `{ toolId, execute(input) → result }` — minimal surface area. Tools are registered in RuntimeConfig, looked up by ID. This keeps the contract clean and testable
+- **Plans are always draft**: Per spec section 14.1, plans are proposals not automatically executable. This prevents model-suggested plans from being executed without review
+- **Act with approval gating**: When policy returns `requiresApproval`, act throws rather than executing. This is the safe default until an approval workflow UI is built
+- **JSON sink is write-only**: Separates concerns — logging and querying are different capabilities. Use CompositeAuditSink to combine JsonAuditSink (logging) with MemoryAuditSink (querying)
+- **Optional crypto in memory store**: The CryptoProvider dependency is optional — this keeps the memory package usable in tests and simple setups without requiring node:crypto
+
+### Technical notes
+- The sandbox demo uses a mock adapter with canned responses to simulate a local model — this pattern is good for integration testing too
+- Memory retrieval returns all items up to topK, sorted by relevance — it doesn't filter items with 0 matching terms. Use type/scope filters for precision
+- The demo shows the spec section 25 pseudocode shape working end-to-end through the SDK
+- ToolAdapter.execute receives and returns `Record<string, unknown>` — loose typing is intentional to support arbitrary tool schemas
+
+### What's next (suggested)
+- Expose plan and act through the SDK's Lattice class
+- Add `verify` verb for model/checkpoint integrity verification using CryptoProvider
+- Build a real adapter that calls an LLM API (e.g., Anthropic via the SDK)
+- Add scope-based memory isolation tests (multi-tenant scenarios)
+- Control plane app: REST API for policy management, audit querying
+- ADRs documenting the key decisions made across iterations 1-3
+
+---
+
 ## Iteration 2 (2026-03-16)
 
 ### What was built
