@@ -1,5 +1,34 @@
 # Learnings: Local Adaptive AI Runtime and Control Plane
 
+## Iteration 16 (2026-03-16)
+
+### What was built
+- **API key authentication**: Bearer token and X-API-Key header support, configurable via `API_KEYS` env var. Public paths bypass auth. Disabled when no keys configured. 6 tests
+- **SQLite policy store**: `createSqlitePolicyStore` for persistent rules. save/remove/list/loadInto with INSERT OR REPLACE upsert. 6 tests
+- **Metrics endpoint**: `GET /api/v1/metrics` returns policy rule count, audit event breakdown by type, error count, system info (Node version, uptime, memory). 1 test
+- **Total test count**: 286 unique tests across 9 packages
+
+### Architecture decisions made
+- **Auth disabled by default**: When `API_KEYS` env var is empty, auth middleware passes all requests through. This makes development/testing seamless while requiring explicit opt-in for production security
+- **Two auth header formats**: Supports both `Authorization: Bearer <key>` (standard) and `X-API-Key: <key>` (common for API services). Either format works
+- **PolicyStore.save() is atomic**: Writes to SQLite AND adds to engine in one call. This prevents desync between persisted and in-memory state
+- **loadInto() is idempotent**: Multiple calls add rules to the engine (addRule upserts by ID). Safe to call on every startup
+
+### Technical notes
+- Metrics endpoint queries audit sink with `limit: 10000` — adequate for moderate volumes, would need sampling for high-throughput production use
+- Memory usage reported in MB (Math.round) for human readability
+- The policy store uses the same WAL mode and shared DB pattern as memory and audit stores
+
+### What's next (suggested)
+- Wire policy store into control plane (persistent policy CRUD)
+- Rate limiting on control plane API endpoints
+- Database migration versioning
+- OpenAPI spec / Swagger UI
+- Webhook notifications for audit events
+- Dashboard frontend
+
+---
+
 ## Iteration 15 (2026-03-16)
 
 ### What was built
