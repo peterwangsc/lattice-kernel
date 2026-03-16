@@ -1,5 +1,34 @@
 # Learnings: Local Adaptive AI Runtime and Control Plane
 
+## Iteration 26 (2026-03-16)
+
+### What was built
+- **MemoryStore.stats()**: Returns totalItems, checkpointCount, itemsByType, itemsByTenant. Implemented in all 4 store variants (in-memory, SQLite, encrypted, embedding). SQLite uses GROUP BY for efficiency. 1 test
+- **Memory management endpoints**: GET /api/v1/memory (retrieve with filters), GET /api/v1/memory/stats, GET/DELETE /api/v1/memory/:id, POST /api/v1/memory/expire. Shared SQLite DB with audit and policy
+- **Total**: 339 tests, 101 commits
+
+### Control plane endpoint summary (complete)
+| Method | Path | Description |
+|--------|------|-------------|
+| GET | /health | System health |
+| GET | /api/v1/policies | List rules |
+| POST | /api/v1/policies | Add/update rule (persisted) |
+| DELETE | /api/v1/policies/:id | Remove rule |
+| GET | /api/v1/audit | Paginated audit query |
+| GET | /api/v1/metrics | System metrics |
+| GET | /api/v1/openapi.json | OpenAPI spec |
+| GET | /api/v1/memory/stats | Memory statistics |
+| GET | /api/v1/memory | Retrieve items (q, tenantId, limit) |
+| GET | /api/v1/memory/:id | Get single item |
+| DELETE | /api/v1/memory/:id | Delete item |
+| POST | /api/v1/memory/expire | Trigger expiration |
+
+### Architecture decisions made
+- **SQLite stats via GROUP BY**: The SQLite store computes stats with SQL aggregation rather than scanning rows in application code. This is efficient even with large datasets
+- **Memory store decorator pattern for stats()**: Encrypted and embedding stores delegate stats() to inner store. Stats always reflect the actual persisted state, not the decorator's view
+
+---
+
 ## Iteration 25 (2026-03-16)
 
 ### What was built
