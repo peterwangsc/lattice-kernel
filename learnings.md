@@ -1,5 +1,40 @@
 # Learnings: Local Adaptive AI Runtime and Control Plane
 
+## Iteration 17 (2026-03-16)
+
+### What was built
+- **Persistent policy CRUD**: Control plane now uses SQLitePolicyStore for policy persistence. Rules load from DB on startup, POST/DELETE persist through the store. Response includes `persisted: true` flag
+- **CLAUDE.md comprehensive update**: Full project state documentation with milestone completion tracking against program.md (M0-M4 complete, M5 partial)
+- **Total**: 286 tests, 9 packages, 2 apps, 72 commits
+
+### Spec milestone completion (program.md section 21)
+- **M0 Foundation** — COMPLETE: monorepo, schemas, runtime interfaces, adapter abstraction, audit events, policy engine, 6 ADRs
+- **M1 Basic runtime** — COMPLETE: infer with local/cloud/auto routing, model registry, request envelopes (RequestContext), typed SDK, traceable execution metadata (traceId/spanId)
+- **M2 Memory system** — COMPLETE: embed, remember, retrieve, provenance, scope isolation (4 levels), retention rules (auto-expiration), encrypted persistence (AES-256-GCM over SQLite), audit events
+- **M3 Planning and governance** — COMPLETE: plan verb, control plane REST API (health, policy CRUD, audit queries, metrics), policy authoring with persistence, approval rules (require_approval effect), audit dashboard via paginated queries
+- **M4 Mutable state safety** — COMPLETE: checkpoint, rollback, verify/verifyCheckpoint with integrity hashing. Adaptation overlays intentionally deferred (spec section 13.1 recommends conservative v1)
+- **M5 Reference products** — PARTIAL: sandbox demo app demonstrates full API. Developer starter template and benchmark suite remaining
+
+### Architecture summary after 17 iterations
+The system implements a layered architecture matching program.md section 9:
+1. **SDK Layer** (section 9.1): `createLattice` with clean developer API, re-exports all types
+2. **Runtime Layer** (section 9.2): inference, routing, tool orchestration, streaming, conversations, prompt templates, context propagation
+3. **Backend Adapter Layer** (section 9.3): Anthropic Claude (streaming + tool use), local/web/cloud stubs, composite/retry/rate-limit decorators
+4. **Memory Layer** (section 9.4): in-memory and SQLite stores, encrypted wrapper, scope isolation, retention, verification
+5. **Policy Engine** (section 9.5): priority-based rules, default-deny, glob matching, persistent storage
+6. **Control Plane** (section 9.6): REST API with auth, CORS, policy CRUD, audit queries, metrics
+7. **Storage Layer** (section 9.7): SQLite with WAL mode for memory, audit, and policy persistence
+
+### What's next (suggested)
+- Benchmark and eval suite (completing M5)
+- OpenAPI spec for control plane
+- Webhook notifications for audit events
+- More adapter implementations (OpenAI, local llama.cpp)
+- Dashboard frontend for control plane
+- Database migration system
+
+---
+
 ## Iteration 16 (2026-03-16)
 
 ### What was built
