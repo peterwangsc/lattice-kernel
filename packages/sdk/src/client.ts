@@ -226,6 +226,11 @@ export class Lattice {
   listCheckpoints(): Checkpoint[] {
     return this.memoryStore.listCheckpoints();
   }
+
+  /** Access the underlying runtime for advanced usage (e.g., runToolLoop). */
+  getRuntime(): Runtime {
+    return this.runtime;
+  }
 }
 
 export function createLattice(config: LatticeConfig): Lattice {
