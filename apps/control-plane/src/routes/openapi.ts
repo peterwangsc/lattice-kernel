@@ -120,9 +120,107 @@ const OPENAPI_SPEC = {
       get: {
         summary: "System metrics",
         responses: {
-          "200": {
-            description: "Policy, audit, and system metrics",
+          "200": { description: "Policy, audit, and system metrics" },
+        },
+      },
+    },
+    "/api/v1/memory/stats": {
+      get: {
+        summary: "Memory statistics",
+        responses: {
+          "200": { description: "Item counts by type and tenant" },
+        },
+      },
+    },
+    "/api/v1/memory": {
+      get: {
+        summary: "Retrieve memory items",
+        parameters: [
+          { name: "q", in: "query", schema: { type: "string" }, description: "Search query" },
+          { name: "tenantId", in: "query", schema: { type: "string" } },
+          { name: "appId", in: "query", schema: { type: "string" } },
+          { name: "userId", in: "query", schema: { type: "string" } },
+          { name: "limit", in: "query", schema: { type: "integer", default: 20 } },
+        ],
+        responses: {
+          "200": { description: "Memory items matching query and scope" },
+        },
+      },
+    },
+    "/api/v1/memory/{id}": {
+      get: {
+        summary: "Get a single memory item",
+        parameters: [
+          { name: "id", in: "path", required: true, schema: { type: "string" } },
+        ],
+        responses: {
+          "200": { description: "Memory item" },
+          "404": { description: "Item not found" },
+        },
+      },
+      delete: {
+        summary: "Delete a memory item",
+        parameters: [
+          { name: "id", in: "path", required: true, schema: { type: "string" } },
+        ],
+        responses: {
+          "200": { description: "Item deleted" },
+        },
+      },
+    },
+    "/api/v1/memory/expire": {
+      post: {
+        summary: "Expire stale memory items",
+        responses: {
+          "200": { description: "Number of expired items" },
+        },
+      },
+    },
+    "/api/v1/checkpoints": {
+      get: {
+        summary: "List all checkpoints",
+        responses: {
+          "200": { description: "Checkpoints list" },
+        },
+      },
+      post: {
+        summary: "Create a checkpoint",
+        requestBody: {
+          content: {
+            "application/json": {
+              schema: {
+                type: "object",
+                properties: { description: { type: "string" } },
+              },
+            },
           },
+        },
+        responses: {
+          "201": { description: "Checkpoint created" },
+        },
+      },
+    },
+    "/api/v1/checkpoints/{id}/rollback": {
+      post: {
+        summary: "Rollback to a checkpoint",
+        parameters: [
+          { name: "id", in: "path", required: true, schema: { type: "string" } },
+        ],
+        responses: {
+          "200": { description: "Rolled back" },
+          "404": { description: "Checkpoint not found" },
+        },
+      },
+    },
+    "/api/v1/checkpoints/{id}/verify": {
+      get: {
+        summary: "Verify checkpoint integrity",
+        parameters: [
+          { name: "id", in: "path", required: true, schema: { type: "string" } },
+        ],
+        responses: {
+          "200": { description: "Checkpoint is valid" },
+          "409": { description: "Integrity check failed" },
         },
       },
     },
