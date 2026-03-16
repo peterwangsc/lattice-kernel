@@ -1,5 +1,35 @@
 # Learnings: Local Adaptive AI Runtime and Control Plane
 
+## Iteration 8 (2026-03-16)
+
+### What was built
+- **Multi-turn conversation**: `Message` type (user|assistant), `InferRequest.messages` array for conversation history. Anthropic adapter builds proper multi-turn API calls. SDK passes messages through. 3 new tests
+- **System prompt support**: `InferRequest.systemPrompt` field. Anthropic adapter sends as `system` field. Wired through runtime and SDK
+- **Retry adapter**: `createRetryAdapter` wraps any adapter with exponential backoff + jitter. Retries 429, 5xx, timeout, network errors. Custom predicate support. Does NOT retry streaming. 9 new tests
+- **Total test count**: 177 unique tests across 7 packages, all passing
+
+### Architecture decisions made
+- **Messages array is optional, input is always required**: Single-turn usage (`input` only) is the common case. Multi-turn provides `messages` array alongside `input`. When `messages` is provided, the adapter uses it; otherwise falls back to wrapping `input` as a single user message. This keeps the simple case simple
+- **System prompt is adapter-level, not runtime-level**: The `systemPrompt` field passes through the runtime to the adapter. Different providers handle system prompts differently (Anthropic uses a `system` field, others may prepend it to messages). Keeping it at the adapter level allows provider-specific handling
+- **Retry does not wrap streaming**: Once an SSE stream has started, retrying would require buffering already-emitted chunks. This breaks the streaming contract. Stream errors should be handled at the application level (reconnect and re-request)
+- **buildRequestBody helper in Anthropic adapter**: Shared between infer() and inferStream() to avoid duplication. Constructs messages, system prompt, temperature, stop sequences in one place
+
+### Technical notes
+- The `Message` type only supports user and assistant roles. Tool use messages would need an extension when function calling is added
+- Retry delay: `baseDelay * 2^attempt + random(0, baseDelay)`. Default: 500ms base, 10s max, 3 retries
+- The retry adapter preserves the inner adapter's `providerId` for audit trail consistency
+- Test retry delays are set to 1ms to keep tests fast
+
+### What's next (suggested)
+- Control plane REST API for policy/audit management
+- OpenTelemetry trace context propagation
+- Tool use (function calling) in adapter contract and Anthropic adapter
+- Conversation session management (auto-append assistant responses)
+- Rate limiter adapter (complement to retry — prevent hitting limits)
+- Prompt template system for reusable prompt patterns
+
+---
+
 ## Iteration 7 (2026-03-16)
 
 ### What was built
